@@ -38,6 +38,25 @@ namespace DVRP.Optimizer
         private static void HandleEvent(string message) {
             var problem = JsonConvert.DeserializeObject<Problem>(message);
 
+            /*var solution = new List<int>[problem.VehicleCount];
+            for (int i = 0; i < problem.VehicleCount; i++) {
+                solution[i] = new List<int>();
+            }
+            int capacityLeft = problem.VehicleCapacity;
+            int vehicle = 0;
+            for (int i = 0; i < problem.Requests.Length; i++) {
+                var amount = problem.Requests[i].Amount;
+                if (capacityLeft >= amount) {
+                    capacityLeft -= amount;
+                } else {
+                    vehicle++;
+                    capacityLeft = problem.VehicleCapacity - amount;
+                }
+                solution[vehicle].Add(i);
+            }
+
+            queue.Publish(new Solution(solution));*/
+
             queue.Publish(TabuSearch.Solve(problem));
             //queue.Publish(ACSSolver.Solve(problem, 10, 3));
         }

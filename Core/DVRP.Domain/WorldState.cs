@@ -76,7 +76,7 @@ namespace DVRP.Domain
         /// <param name="request"></param>
         public void AddRequest(Request request) {
             KnownRequests.Add(request.Id, request);
-            CalculateCostMatrix();
+            CostMatrix = CalculateCostMatrix();
         }
 
         /// <summary>

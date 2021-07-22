@@ -45,6 +45,7 @@ namespace DVRP.Simulaton
                 yield return env.Timeout(TimeSpan.FromSeconds(request.Key));
                 realTimeEnforcer++;
                 env.SetRealtime();
+                Console.WriteLine(">>> New Request <<<");
                 WorldState.AddRequest(request.Value);
                 eventQueue.Publish(WorldState.ToProblem());
             }
@@ -178,7 +179,6 @@ namespace DVRP.Simulaton
             eventQueue = new SimulationQueue(pubConnectionStr, subConnectionString);
 
             eventQueue.OnEvent += (sender, args) => {
-                env.Log("Received msg");
                 switch (args.Topic) {
                     case "decision":
                         HandleDecision(args.Message);
@@ -189,7 +189,6 @@ namespace DVRP.Simulaton
                         
                         break;
                     case "score":
-                        env.Log("Received score request");
                         HandleScore(args.Message);
                         break;
                     default:
@@ -217,6 +216,7 @@ namespace DVRP.Simulaton
         }
 
         private void HandleDecision(string message) {
+            Console.WriteLine("Received new solution");
             realTimeEnforcer--;
             solution = JsonSerializer.Deserialize<Solution>(message);
 

@@ -21,6 +21,7 @@ namespace DVRP.Domain
             VehicleCapacity = vehicleCapacity;
             Depot = depot;
             CostMatrix = costMatrix;
+            Start = start;
         }
 
         public Problem(IDictionary<int, Request> requests, int vehicleCount, int[] start, int vehicleCapacity, long[,] costMatrix, int depot = 0) {
@@ -29,6 +30,7 @@ namespace DVRP.Domain
             VehicleCapacity = vehicleCapacity;
             Depot = depot;
             CostMatrix = costMatrix;
+            Start = start;
         }
     }
 }
