@@ -7,11 +7,13 @@ namespace DVRP.Domain
         public int X { get; set; }
         public int Y { get; set; }
         public int Amount { get; set; }
+        public int Id { get; set; }
 
-        public Request(int x, int y, int amount) {
+        public Request(int x, int y, int amount, int id) {
             X = x;
             Y = y;
             Amount = amount;
+            Id = id;
         }
 
         public Request() {}

@@ -11,14 +11,14 @@ namespace DVRP.Simulaton
 {
     public class DVRP
     {
-        private Domain.Request[] advancedRequests;
+        //private Domain.Request[] advancedRequests;
         private Dictionary<int, Domain.Request> dynamicRequests;
-        private Dictionary<int, Domain.Request> currentRequests = new Dictionary<int, Domain.Request>();
+        //private Dictionary<int, Domain.Request> currentRequests = new Dictionary<int, Domain.Request>();
 
         private int vehicleCount = 5;
         private int vehicleCapacity = 100;
         private TimeSpan serviceTime = TimeSpan.FromMinutes(5);
-        private Domain.Request depot = new Domain.Request(0, 0, 0);
+        private Domain.Request depot;
 
         private int realTimeEnforcer = 0;
         private Solution solution;
@@ -28,23 +28,25 @@ namespace DVRP.Simulaton
 
         private int[] currentSolutionIdx;
 
-        private Communication.SimulationQueue eventQueue;
+        private SimulationQueue eventQueue;
         private Store requestPipe;
+
+        public WorldState WorldState { get; set; }
 
         private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
             env.Log("Publish");
             realTimeEnforcer++;
             env.SetRealtime();
-            eventQueue.Publish(new Problem(advancedRequests, vehicleCount, vehicleCapacity));
+            eventQueue.Publish(WorldState.ToProblem());
             Thread.Sleep(500);
-            eventQueue.Publish(new Problem(advancedRequests, vehicleCount, vehicleCapacity));
+            eventQueue.Publish(WorldState.ToProblem());
 
             foreach (var request in dynamicRequests) {
                 yield return env.Timeout(TimeSpan.FromSeconds(request.Key));
-                currentRequests.Add(currentRequests.Count, request.Value);
                 realTimeEnforcer++;
                 env.SetRealtime();
-                eventQueue.Publish(new Problem(currentRequests, vehicleCount, vehicleCapacity));
+                WorldState.AddRequest(request.Value);
+                eventQueue.Publish(WorldState.ToProblem());
             }
         }
 
@@ -62,16 +64,25 @@ namespace DVRP.Simulaton
                     Thread.Sleep(100);
                 }
 
-                if(vehicle == -1) {
-                    for(int i = 0; i < vehicleCount; i++) {
-                        if (solution.Data[i].Count() > currentSolutionIdx[i]) {
-                            pipes[i].Put(solution.Data[i].ElementAt<int>(currentSolutionIdx[i]));
+                if(vehicle == -1) { // A new solution is available
+                    for(int i = 0; i < vehicleCount; i++) { // for every vehicle
+                        if (solution.Data[i].Count() > 1 && vehicles[i].IsIdle) { // if there is a customer (not depot) planned for the vehicle and it is not doing anything
+                            var nextRequest = solution.Data[i].First();
+
+                            WorldState.CommitRequest(i, nextRequest);
+                            pipes[i].Put(nextRequest); // assign the first customer on the route
                             currentSolutionIdx[i]++;
                         }
                     }
                 } else if(solution.Data[vehicle].Count() > currentSolutionIdx[vehicle]) {
-                    pipes[vehicle].Put(solution.Data[vehicle].ElementAt<int>(currentSolutionIdx[vehicle]));
-                    currentSolutionIdx[vehicle]++;
+                    var nextRequest = solution.Data[vehicle].ElementAt<int>(currentSolutionIdx[vehicle]);
+
+                    // Check if vehicle is not already at the next request (empty routes)
+                    if(WorldState.CurrentRequests[vehicle].Id != nextRequest) {
+                        pipes[vehicle].Put(nextRequest);
+                        WorldState.CommitRequest(vehicle, nextRequest);
+                        currentSolutionIdx[vehicle]++;
+                    }
                 }
             }
         }
@@ -92,51 +103,67 @@ namespace DVRP.Simulaton
             public int Capacity { get; set; }
 
             /// <summary>
+            /// The current request the vehicle is serving or driving to
+            /// </summary>
+            public Domain.Request CurrentRequest { get; set; }
+
+            public bool IsIdle { get; private set; } = false;
+
+            /// <summary>
             /// Ctor
             /// </summary>
             /// <param name="env">Simulation environment</param>
             /// <param name="capacity">Carrying capacity of the vehicle</param>
             /// <param name="pipe">Contains the next order</param>
             /// <param name="id">Unique identifier</param>
-            /// <param name="request">Store where the vehicle can request an order by putting in its id</param>
-            public Vehicle(PseudoRealtimeSimulation env, int capacity, Store pipe, int id, Store request) : base(env) {
+            /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
+            public Vehicle(PseudoRealtimeSimulation env, int capacity, Store pipe, int id, Store dispatcherRequest, Domain.Request depot) : base(env) {
                 Capacity = capacity;
+                Id = id;
+                CurrentRequest = depot; // start at the depot
 
-                env.Process(Working(id, env, pipe, request));
+                env.Process(Working(env, pipe, dispatcherRequest));
             }
 
             /// <summary>
             /// Work loop
             /// </summary>
-            /// <param name="id">Unique identifier</param>
             /// <param name="env">Simulation environment</param>
             /// <param name="pipe">Contains the next order</param>
-            /// <param name="request">Store where the vehicle can request an order by putting in its id</param>
+            /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
             /// <returns></returns>
-            private IEnumerable<Event> Working(int id, PseudoRealtimeSimulation env, Store pipe, Store request) {
+            private IEnumerable<Event> Working(PseudoRealtimeSimulation env, Store pipe, Store dispatcherRequest) {
                 while(true) {
-                    env.Log($"[{id}] Requesting next assignment");
-                    request.Put(id);
+                    env.Log($"[{Id}] Requesting next assignment");
+                    dispatcherRequest.Put(Id);
+                    IsIdle = true;
 
-                    env.Log($"[{id}] Waiting for next assignment");
+                    env.Log($"[{Id}] Waiting for next assignment");
                     var get = pipe.Get();
                     yield return get;
+                    IsIdle = false;
 
                     var assignment = (int) get.Value;
-                    env.Log($"[{id}] Driving to customer {assignment}.");
+                    env.Log($"[{Id}] Driving to customer {assignment}.");
 
                     // travel time
                     yield return env.TimeoutD(15);
 
-                    env.Log($"[{id}] Arrived at customer {assignment}.");
+                    env.Log($"[{Id}] Arrived at customer {assignment}.");
 
                     // service time
                     yield return env.TimeoutD(3);
-                    env.Log($"[{id}] Serviced customer {assignment}.");
+                    env.Log($"[{Id}] Serviced customer {assignment}.");
                 }
             }
         }
 
+        /// <summary>
+        /// Starts the simulation
+        /// </summary>
+        /// <param name="pubConnectionStr"></param>
+        /// <param name="subConnectionString"></param>
+        /// <param name="rseed"></param>
         public void Simulate(string pubConnectionStr, string subConnectionString, int rseed = 42) {
             var start = DateTime.Now;
             var env = new PseudoRealtimeSimulation(start, rseed);
@@ -144,12 +171,8 @@ namespace DVRP.Simulaton
             currentSolutionIdx = new int[vehicleCount];
 
             // load problem instance
-            advancedRequests = LoadAdvancedRequestsMock();
+            depot = LoadDepotMock();
             dynamicRequests = LoadDynamicRequestsMock();
-
-            foreach(var request in advancedRequests) {
-                currentRequests.Add(currentRequests.Count, request);
-            }
 
             // publish advanced requests to queue
             eventQueue = new SimulationQueue(pubConnectionStr, subConnectionString);
@@ -174,6 +197,11 @@ namespace DVRP.Simulaton
                 }
             };
 
+            WorldState = new WorldState(vehicleCount,
+                depot, LoadAdvancedRequestsMock(),
+                Enumerable.Repeat(vehicleCapacity,
+                vehicleCount).ToArray()); // TODO: different capacities
+
             env.Process(DynamicRequestHandler(env));
 
             requestPipe = new Store(env);
@@ -183,7 +211,7 @@ namespace DVRP.Simulaton
             pipes = Enumerable.Range(0, vehicleCount).Select(x => new Store(env)).ToArray();
 
             // create vehicles
-            var vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, vehicleCapacity, pipes[x], x, requestPipe)).ToArray();
+            vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, vehicleCapacity, pipes[x], x, requestPipe, depot)).ToArray();
 
             env.Run();
         }
@@ -191,17 +219,23 @@ namespace DVRP.Simulaton
         private void HandleDecision(string message) {
             realTimeEnforcer--;
             solution = JsonSerializer.Deserialize<Solution>(message);
+
+            // reset index of current solution
+            for(int i = 0; i < currentSolutionIdx.Length; i++) {
+                currentSolutionIdx[i] = 0;
+            }
+
             requestPipe.Put(-1);
             //Console.WriteLine($"Received decision: {message}");
         }
 
         private void HandleScore(string message) {
-            var score = CalcScore(JsonSerializer.Deserialize<Solution>(message));
+            /*var score = CalcScore(JsonSerializer.Deserialize<Solution>(message));
             Console.WriteLine($"Publish score: {score}");
-            eventQueue.Publish(score);
+            eventQueue.Publish(score);*/
         }
 
-        private double CalcScore(Solution solution) {
+        /*private double CalcScore(Solution solution) {
             double totalLength = 0;
 
             foreach(var route in solution.Data) {
@@ -223,22 +257,27 @@ namespace DVRP.Simulaton
             }
 
             return totalLength;
+        }*/
+
+        private Domain.Request LoadDepotMock() {
+            return new Domain.Request(0, 0, 0, 0);
         }
 
         private Domain.Request[] LoadAdvancedRequestsMock() {
             return new Domain.Request[] {
-                new Domain.Request(12, 4, 10),
-                new Domain.Request(2, 3, 15),
-                new Domain.Request(20, 40, 30),
-                new Domain.Request(12, 33, 2),
-                new Domain.Request(4, 44, 37),
-                new Domain.Request(21, 23, 50)
+                new Domain.Request(12, 4, 10, 1),
+                new Domain.Request(2, 3, 15, 2),
+                new Domain.Request(20, 40, 30, 3),
+                new Domain.Request(12, 33, 2, 4),
+                new Domain.Request(4, 44, 37, 5),
+                new Domain.Request(21, 23, 50, 6)
             };
         }
+
         private Dictionary<int, Domain.Request> LoadDynamicRequestsMock() {
             return new Dictionary<int, Domain.Request>() {
-                { 1, new Domain.Request(10, 3, 5) },
-                { 4, new Domain.Request(40, 23, 70) }
+                { 1, new Domain.Request(10, 3, 5, 7) },
+                { 4, new Domain.Request(40, 23, 70, 8) }
             };
         }
     }

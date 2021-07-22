@@ -17,19 +17,19 @@ namespace DVRP.Optimizer.ACS
         private double pheromoneImportance; // 0 <= pheromoneImportance <= 1
         private Random random = new Random();
         private double pheromoneEvaporation = 0.5; // 0 <= pheromoneEvaporation <= 1
-        private Problem problem;
+        private WorldState problem;
 
-        public Ant(Problem problem, double initialPheromoneValue, double[,] pheromoneMatrix = null, double pheromoneEvaporation = 0.5, double pheromoneImportance = 0.5) {
+        public Ant(WorldState problem, double initialPheromoneValue, double[,] pheromoneMatrix = null, double pheromoneEvaporation = 0.5, double pheromoneImportance = 0.5) {
             this.problem = problem;
             this.initialPheromoneValue = initialPheromoneValue;
-            costMatrix = TransformDistanceMatrix(problem.VehicleCount, problem.Requests.Length, problem.DistanceMatrix);
+            costMatrix = TransformDistanceMatrix(problem.VehicleCount, problem.KnownRequests.Count, problem.CostMatrix);
             this.pheromoneEvaporation = pheromoneEvaporation;
             this.pheromoneImportance = pheromoneImportance;
 
             // Take existing pheromone matrix or create a new one
             this.pheromoneMatrix = pheromoneMatrix != null 
-                ? TransformPheromoneMatrix(problem.VehicleCount, problem.Requests.Length, pheromoneMatrix, initialPheromoneValue) 
-                : CreatePheromoneMatrix(problem.VehicleCount, problem.Requests.Length, initialPheromoneValue);
+                ? TransformPheromoneMatrix(problem.VehicleCount, problem.KnownRequests.Count, pheromoneMatrix, initialPheromoneValue) 
+                : CreatePheromoneMatrix(problem.VehicleCount, problem.KnownRequests.Count, initialPheromoneValue);
         }
 
         /// <summary>
@@ -37,13 +37,13 @@ namespace DVRP.Optimizer.ACS
         /// </summary>
         /// <returns></returns>
         public Solution FindSolution() {
-            var initialSolution = BuildInitialSolution(problem.VehicleCount, problem.Requests.Length, 0);
+            var initialSolution = BuildInitialSolution(problem.VehicleCount, problem.KnownRequests.Count, 0);
             Console.WriteLine("Build initial solution");
             initialSolution.Cost = Evaluate(initialSolution, problem);
 
             while(initialSolution.Cost < 0) { // solution must be feasible -> improve BuildInitialSolution to only return feasible solutions
                 Console.WriteLine("Build intial solution");
-                initialSolution = BuildInitialSolution(problem.VehicleCount, problem.Requests.Length, 0);
+                initialSolution = BuildInitialSolution(problem.VehicleCount, problem.KnownRequests.Count, 0);
             }
             Console.WriteLine("Evaluating solution");
             return LocalSearch(initialSolution, problem, 1);
@@ -191,7 +191,7 @@ namespace DVRP.Optimizer.ACS
         /// <param name="problem"></param>
         /// <param name="maxComputationTime"></param>
         /// <returns></returns>
-        private Solution LocalSearch(Solution initialSolution, Problem problem, int maxComputationTime) {
+        private Solution LocalSearch(Solution initialSolution, WorldState problem, int maxComputationTime) {
             var solution = new Solution(problem.VehicleCount);
 
             // find best solution with local search
@@ -249,24 +249,24 @@ namespace DVRP.Optimizer.ACS
         /// <param name="solution"></param>
         /// <param name="problem"></param>
         /// <returns></returns>
-        private double Evaluate(Solution solution, Problem problem) {
+        private double Evaluate(Solution solution, WorldState problem) {
             // infeasible solution if it does not start with a dummy depot
             if(! solution.IsDummyDepot(0)) {
                 return -1;
             }
 
             var vehicle = solution.Route[0];
-            var currCapacity = problem.VehicleCapacity;
+            var currCapacity = problem.Capacities[0];
             var cost = 0.0;
 
             for(int i = 1; i < solution.Route.Length; i++) {
                 // check if current location is a dummy depot
                 if(solution.IsDummyDepot(i)) {
                     vehicle = solution.Route[i];
-                    currCapacity = problem.VehicleCapacity;
+                    currCapacity = problem.Capacities[0];
                 } else {
                     var requestIndex = solution.GetRealIndex(i);
-                    currCapacity -= problem.Requests[requestIndex].Amount;
+                    currCapacity -= problem.KnownRequests[requestIndex].Amount;
 
                     // check constraints
                     if (currCapacity < 0) {
@@ -275,7 +275,7 @@ namespace DVRP.Optimizer.ACS
                     }
 
                     var from = solution.GetRealIndex(i - 1);
-                    cost += problem.DistanceMatrix[from, requestIndex];
+                    cost += problem.CostMatrix[from, requestIndex];
                 }
             }
 
@@ -288,7 +288,7 @@ namespace DVRP.Optimizer.ACS
         /// <param name="solution"></param>
         /// <param name="problem"></param>
         /// <returns></returns>
-        private IEnumerable<Solution> GetNeighborhood(Solution solution, Problem problem) { // TODO add time limit
+        private IEnumerable<Solution> GetNeighborhood(Solution solution, WorldState problem) { // TODO add time limit
             var neighbors = new List<Solution>();
 
             for(int i = 0; i < solution.Route.Length - 1; i++) {

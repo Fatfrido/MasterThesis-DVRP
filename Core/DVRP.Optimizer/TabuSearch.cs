@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using DVRP.Domain;
 using Google.OrTools;
@@ -12,14 +13,15 @@ namespace DVRP.Optimizer
 
         public static Solution Solve(Problem problem) {
             RoutingIndexManager manager = 
-                new RoutingIndexManager(problem.Requests.Length, problem.VehicleCount, problem.Depot);
+                new RoutingIndexManager(problem.CostMatrix.GetLength(0), problem.VehicleCount, problem.Start, 
+                                        Enumerable.Repeat(problem.Depot, problem.VehicleCount).ToArray());
 
             RoutingModel routing = new RoutingModel(manager);
 
             int transitCallbackIndex = routing.RegisterTransitCallback((long fromIndex, long toIndex) => {
                 var fromNode = manager.IndexToNode(fromIndex);
                 var toNode = manager.IndexToNode(toIndex);
-                return problem.DistanceMatrix[fromNode, toNode];
+                return problem.CostMatrix[fromNode, toNode];
             });
 
             routing.SetArcCostEvaluatorOfAllVehicles(transitCallbackIndex);
@@ -40,13 +42,13 @@ namespace DVRP.Optimizer
             var solution = new Solution(problem.VehicleCount);
 
             for(int i = 0; i < problem.VehicleCount; i++) {
-                //Console.WriteLine($"Process vehicle {i}:");
+                Console.WriteLine($"Process vehicle {i}:");
                 var route = new List<int>();
                 var index = routing.Start(i);
 
                 while(!routing.IsEnd(index)) {
                     var node = manager.IndexToNode((int) index);
-                    //Console.WriteLine($"\t- {node}");
+                    Console.WriteLine($"\t- {node}");
                     route.Add(node);
                     index = assignment.Value(routing.NextVar(index));
                 }
