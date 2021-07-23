@@ -14,23 +14,20 @@ namespace DVRP.Domain
         public int[] Start { get; set; }
         public long[,] CostMatrix { get; set; }
 
+        /// <summary>
+        /// Maps the index of a request to it's id
+        /// </summary>
+        public int[] Mapping { get; set; }
+
         public Problem() { }
-        public Problem(Request[] requests, int vehicleCount, int vehicleCapacity, int[] start, long[,] costMatrix, int depot = 0) {
+        public Problem(Request[] requests, int vehicleCount, int vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping, int depot = 0) {
             Requests = requests;
             VehicleCount = vehicleCount;
             VehicleCapacity = vehicleCapacity;
             Depot = depot;
             CostMatrix = costMatrix;
             Start = start;
-        }
-
-        public Problem(IDictionary<int, Request> requests, int vehicleCount, int[] start, int vehicleCapacity, long[,] costMatrix, int depot = 0) {
-            Requests = requests.Values.ToArray();
-            VehicleCount = vehicleCount;
-            VehicleCapacity = vehicleCapacity;
-            Depot = depot;
-            CostMatrix = costMatrix;
-            Start = start;
+            Mapping = mapping;
         }
     }
 }

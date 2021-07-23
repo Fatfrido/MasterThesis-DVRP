@@ -8,6 +8,7 @@ namespace DVRP.Domain
         public int Y { get; set; }
         public int Amount { get; set; }
         public int Id { get; set; }
+        public int Vehicle { get; set; }
 
         public Request(int x, int y, int amount, int id) {
             X = x;

@@ -21,7 +21,6 @@ namespace DVRP.Simulaton
         private Domain.Request depot;
 
         private int realTimeEnforcer = 0;
-        private Solution solution;
 
         private Store[] pipes;
         private Vehicle[] vehicles;
@@ -34,7 +33,7 @@ namespace DVRP.Simulaton
         public WorldState WorldState { get; set; }
 
         private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
-            env.Log("Publish");
+            env.Log("Publish initial problem");
             realTimeEnforcer++;
             env.SetRealtime();
             eventQueue.Publish(WorldState.ToProblem());
@@ -60,26 +59,26 @@ namespace DVRP.Simulaton
 
                 var vehicle = (int) get.Value;
 
-                while (solution == null) {
+                while (WorldState.Solution == null) {
                     //env.Log($"Waiting for initial solution");
                     Thread.Sleep(100);
                 }
 
                 if(vehicle == -1) { // A new solution is available
                     for(int i = 0; i < vehicleCount; i++) { // for every vehicle
-                        if (solution.Data[i].Count() > 1 && vehicles[i].IsIdle) { // if there is a customer (not depot) planned for the vehicle and it is not doing anything
-                            var nextRequest = solution.Data[i].First();
+                        if (WorldState.Solution.Data[i].Count() > 1 && vehicles[i].IsIdle) { // if there is a customer (not depot) planned for the vehicle and it is not doing anything
+                            var nextRequest = WorldState.Solution.Data[i].First();
 
                             WorldState.CommitRequest(i, nextRequest);
                             pipes[i].Put(nextRequest); // assign the first customer on the route
                             currentSolutionIdx[i]++;
                         }
                     }
-                } else if(solution.Data[vehicle].Count() > currentSolutionIdx[vehicle]) {
-                    var nextRequest = solution.Data[vehicle].ElementAt<int>(currentSolutionIdx[vehicle]);
+                } else if(WorldState.Solution.Data[vehicle].Count() > currentSolutionIdx[vehicle]) {
+                    var nextRequest = WorldState.Solution.Data[vehicle].ElementAt<int>(currentSolutionIdx[vehicle]);
 
                     // Check if vehicle is not already at the next request (empty routes)
-                    if(WorldState.CurrentRequests[vehicle].Id != nextRequest) {
+                    if(WorldState.CurrentRequests[vehicle] != nextRequest) {
                         pipes[vehicle].Put(nextRequest);
                         WorldState.CommitRequest(vehicle, nextRequest);
                         currentSolutionIdx[vehicle]++;
@@ -145,6 +144,11 @@ namespace DVRP.Simulaton
                     IsIdle = false;
 
                     var assignment = (int) get.Value;
+
+                    // Driving to the current position is not possible. Ignore and continue
+                    if (assignment == CurrentRequest.Id)
+                        continue;
+
                     env.Log($"[{Id}] Driving to customer {assignment}.");
 
                     // travel time
@@ -218,7 +222,7 @@ namespace DVRP.Simulaton
         private void HandleDecision(string message) {
             Console.WriteLine("Received new solution");
             realTimeEnforcer--;
-            solution = JsonSerializer.Deserialize<Solution>(message);
+            WorldState.Solution = JsonSerializer.Deserialize<Solution>(message);
 
             // reset index of current solution
             for(int i = 0; i < currentSolutionIdx.Length; i++) {

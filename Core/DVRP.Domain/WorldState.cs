@@ -8,18 +8,19 @@ namespace DVRP.Domain
     public class WorldState
     {
         /// <summary>
-        /// Vehicle (value) that served the request (key)
+        /// Value is a request and the key it's id
         /// Used to evaluate the final cost
         /// </summary>
-        public Dictionary<int, int> History { get; set; }
+        public Dictionary<int, Request> History { get; set; }
 
         /// <summary>
-        /// Contains the current <see cref="Request"/> for each vehicle (index)
+        /// Contains the current request for each vehicle (index)
         /// </summary>
-        public Request[] CurrentRequests { get; set; }
+        public int[] CurrentRequests { get; set; }
 
         /// <summary>
         /// Known requests; dynamically revealed requests are added to this dictionary
+        /// Value is a request and the key it's id
         /// </summary>
         public Dictionary<int, Request> KnownRequests { get; } = new Dictionary<int, Request>();
 
@@ -48,14 +49,14 @@ namespace DVRP.Domain
         public Solution Solution { get; set; }
 
         public WorldState(int vehicles, Request depot, Request[] knownRequests, int[] capacities) {
-            History = new Dictionary<int, int>();
+            History = new Dictionary<int, Request>();
             VehicleCount = vehicles;
-            CurrentRequests = new Request[vehicles];
+            CurrentRequests = new int[vehicles];
             Depot = depot;
 
             // Initialize the location of every vehicle with the depot
             for(int i = 0; i < vehicles; i++) {
-                CurrentRequests[i] = depot;
+                CurrentRequests[i] = depot.Id;
             }
 
             // Add known requests
@@ -85,27 +86,61 @@ namespace DVRP.Domain
         /// <param name="vehicle"></param>
         /// <param name="request"></param>
         public void CommitRequest(int vehicle, int request) {
-            KnownRequests.Remove(request);
-            History.Add(request, vehicle);
+            if(request != 0) { // dont mind the depot
+                CurrentRequests[vehicle] = request;
+                KnownRequests[request].Vehicle = vehicle;
+                History.Add(KnownRequests[request].Id, KnownRequests[request]);
+                KnownRequests.Remove(request);
+            }
         }
 
         public Problem ToProblem() {
+            var requests = KnownRequests.Values.ToArray();
+            var mapping = new int[KnownRequests.Count + 1];
+
+            // Create the mapping
+            mapping[0] = 0; // depot
+            for (int i = 1; i < mapping.Length; i++) {
+                mapping[i] = requests[i - 1].Id;
+            }
+
+            var reducedCostMatrix = CreateReducedCostMatrix(mapping);
+
             return new Problem(
-                KnownRequests.Values.ToArray(),
+                requests,
                 VehicleCount,
                 Capacities[0],
-                CurrentRequests.Select(x => x.Id).ToArray(),
-                CostMatrix,
-                Depot.Id
+                CurrentRequests,
+                reducedCostMatrix,
+                mapping
                 );
+        }
+
+        /// <summary>
+        /// Creates a cost matrix that only contains data for given requests/mapping
+        /// </summary>
+        /// <param name="mapping">Maps the index of a request to it's id</param>
+        /// <returns></returns>
+        private long[,] CreateReducedCostMatrix(int[] mapping) {
+            var length = mapping.Length;
+            var matrix = new long[length, length];
+
+            // Copy only relevant parts of the cost matrix
+            for(int i = 0; i < length; i++) {
+                for(int j = 0; j < length; j++) {
+                    matrix[i, j] = CostMatrix[mapping[i], mapping[j]];
+                }
+            }
+
+            return matrix;
         }
 
         /// <summary>
         /// Calculates the cost matrix
         /// </summary>
         /// <returns></returns>
-        private long[,] CalculateCostMatrix() {
-            var requestNumber = KnownRequests.Count + 1; // mind the depot!
+        private long[,] CalculateCostMatrix() { // TODO: do not recalculate whole matrix
+            var requestNumber = KnownRequests.Count + History.Count + 1; // mind the depot!
             var matrix = new long[requestNumber, requestNumber];
 
             for (int fromNode = 0; fromNode < requestNumber; fromNode++) {
@@ -113,9 +148,8 @@ namespace DVRP.Domain
                     if (fromNode == toNode) {
                         matrix[fromNode, toNode] = 1;
                     } else {
-                        // Handle depot since it is not contained in KnownRequests
-                        var toRequest = toNode == 0 ? Depot : KnownRequests[toNode];
-                        var fromRequest = fromNode == 0 ? Depot : KnownRequests[fromNode];
+                        var toRequest = GetRequest(toNode);
+                        var fromRequest = GetRequest(fromNode);
 
                         matrix[fromNode, toNode] = (long) Math.Sqrt(Math.Pow(toRequest.X - fromRequest.X, 2) +
                                                              Math.Pow(toRequest.Y - fromRequest.Y, 2));
@@ -124,6 +158,21 @@ namespace DVRP.Domain
             }
 
             return matrix;
+        }
+
+        /// <summary>
+        /// Searches all known requests including already serviced ones
+        /// </summary>
+        /// <param name="requestId"></param>
+        /// <returns></returns>
+        private Request GetRequest(int requestId) {
+            if(requestId == 0) { // depot
+                return Depot;
+            } else if(History.ContainsKey(requestId)) { // request is already served
+                return History[requestId];
+            } else { // request is yet to serve
+                return KnownRequests[requestId];
+            }
         }
     }
 }

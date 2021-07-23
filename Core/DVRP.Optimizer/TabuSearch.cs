@@ -55,6 +55,8 @@ namespace DVRP.Optimizer
                 solution.AddRoute(i, route.ToArray());
             }
 
+            solution.ApplyMapping(problem.Mapping);
+
             Console.WriteLine("... done");
 
             return solution;
