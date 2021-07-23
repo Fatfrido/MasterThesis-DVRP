@@ -11,9 +11,7 @@ namespace DVRP.Simulaton
 {
     public class DVRP
     {
-        //private Domain.Request[] advancedRequests;
         private Dictionary<int, Domain.Request> dynamicRequests;
-        //private Dictionary<int, Domain.Request> currentRequests = new Dictionary<int, Domain.Request>();
 
         private int vehicleCount = 5;
         private int vehicleCapacity = 100;
@@ -146,19 +144,18 @@ namespace DVRP.Simulaton
                     var assignment = (int) get.Value;
 
                     // Driving to the current position is not possible. Ignore and continue
-                    if (assignment == CurrentRequest.Id)
-                        continue;
+                    if (assignment != CurrentRequest.Id) {
+                        env.Log($"[{Id}] Driving to customer {assignment}.");
 
-                    env.Log($"[{Id}] Driving to customer {assignment}.");
+                        // travel time
+                        yield return env.TimeoutD(15);
 
-                    // travel time
-                    yield return env.TimeoutD(15);
+                        env.Log($"[{Id}] Arrived at customer {assignment}.");
 
-                    env.Log($"[{Id}] Arrived at customer {assignment}.");
-
-                    // service time
-                    yield return env.TimeoutD(3);
-                    env.Log($"[{Id}] Serviced customer {assignment}.");
+                        // service time
+                        yield return env.TimeoutD(3);
+                        env.Log($"[{Id}] Serviced customer {assignment}.");
+                    }
                 }
             }
         }
