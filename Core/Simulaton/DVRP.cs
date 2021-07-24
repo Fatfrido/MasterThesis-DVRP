@@ -35,8 +35,8 @@ namespace DVRP.Simulaton
             realTimeEnforcer++;
             env.SetRealtime();
             eventQueue.Publish(WorldState.ToProblem());
-            Thread.Sleep(500);
-            eventQueue.Publish(WorldState.ToProblem());
+            //Thread.Sleep(500);
+            //eventQueue.Publish(WorldState.ToProblem());
 
             foreach (var request in dynamicRequests) {
                 yield return env.Timeout(TimeSpan.FromSeconds(request.Key));

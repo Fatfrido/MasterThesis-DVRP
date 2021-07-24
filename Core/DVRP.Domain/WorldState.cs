@@ -32,7 +32,7 @@ namespace DVRP.Domain
         /// <summary>
         /// Total load of each vehicle - must not succeed it's capacity
         /// </summary>
-        public int[] Load { get; set; }
+        public int[] FreeCapacities { get; set; }
 
         /// <summary>
         /// The start end endpoint of each vehicle
@@ -66,9 +66,7 @@ namespace DVRP.Domain
 
             CostMatrix = CalculateCostMatrix();
             Capacities = capacities;
-
-            // Vehicle load at the beginning is 0
-            Load = Enumerable.Repeat(0, vehicles).ToArray();
+            FreeCapacities = capacities;
         }
 
         /// <summary>
@@ -87,10 +85,11 @@ namespace DVRP.Domain
         /// <param name="request"></param>
         public void CommitRequest(int vehicle, int request) {
             if(request != 0) { // dont mind the depot
-                CurrentRequests[vehicle] = request;
-                KnownRequests[request].Vehicle = vehicle;
-                History.Add(KnownRequests[request].Id, KnownRequests[request]);
-                KnownRequests.Remove(request);
+                CurrentRequests[vehicle] = request; // assign request to vehicle
+                FreeCapacities[vehicle] -= KnownRequests[request].Amount; // update available vehicle capacity
+                KnownRequests[request].Vehicle = vehicle; // assign vehicle to request
+                History.Add(KnownRequests[request].Id, KnownRequests[request]); // add request to history
+                KnownRequests.Remove(request); // remove request from known request since it is already assigned to a vehicle
             }
         }
 
@@ -109,7 +108,7 @@ namespace DVRP.Domain
             return new Problem(
                 requests,
                 VehicleCount,
-                Capacities[0],
+                FreeCapacities,
                 CurrentRequests,
                 reducedCostMatrix,
                 mapping

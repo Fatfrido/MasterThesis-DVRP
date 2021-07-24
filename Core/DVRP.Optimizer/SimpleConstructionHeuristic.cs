@@ -10,7 +10,7 @@ namespace DVRP.Optimizer
         public static Solution Solve(Problem problem) {
             var solution = new Solution(problem.VehicleCount);
             int currentVehicle = 0;
-            int currentVehicleCapacity = problem.VehicleCapacity;
+            int currentVehicleCapacity = problem.VehicleCapacity[currentVehicle];
             var route = new List<int>();
 
             foreach(var request in problem.Requests) {
@@ -20,7 +20,7 @@ namespace DVRP.Optimizer
 
                     // select next vehicle
                     currentVehicle++;
-                    currentVehicleCapacity = problem.VehicleCapacity;
+                    currentVehicleCapacity = problem.VehicleCapacity[currentVehicle];
                     route.Clear();
                 }
 

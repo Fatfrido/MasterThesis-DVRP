@@ -9,7 +9,7 @@ namespace DVRP.Domain
     {
         public Request[] Requests { get; set; }
         public int VehicleCount { get; set; }
-        public int VehicleCapacity { get; set; }
+        public int[] VehicleCapacity { get; set; }
         public int Depot { get; set; }
         public int[] Start { get; set; }
         public long[,] CostMatrix { get; set; }
@@ -20,7 +20,7 @@ namespace DVRP.Domain
         public int[] Mapping { get; set; }
 
         public Problem() { }
-        public Problem(Request[] requests, int vehicleCount, int vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping, int depot = 0) {
+        public Problem(Request[] requests, int vehicleCount, int[] vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping, int depot = 0) {
             Requests = requests;
             VehicleCount = vehicleCount;
             VehicleCapacity = vehicleCapacity;
