@@ -18,6 +18,7 @@ namespace DVRP.Optimizer
                     // commit previous route
                     solution.AddRoute(currentVehicle, route.ToArray());
 
+                    // select next vehicle
                     currentVehicle++;
                     currentVehicleCapacity = problem.VehicleCapacity;
                     route.Clear();

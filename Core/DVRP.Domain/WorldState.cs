@@ -116,6 +116,52 @@ namespace DVRP.Domain
                 );
         }
 
+        public double EvaluateCurrentSolution() {
+            var totalCost = 0.0;
+
+            // TODO check if every request is serviced
+
+            for(int vehicle = 0; vehicle < VehicleCount; vehicle++) {
+                var routeCost = 0.0;
+                var capacity = Capacities[vehicle];
+                var load = 0;
+                var lastRequest = 0; // start at depot
+                // TODO add green-vrp stuff here
+
+                // Finished requests
+                foreach(var entry in History) {
+                    if(entry.Value.Vehicle == vehicle) {
+                        var request = entry.Value;
+                        load += request.Amount;
+
+                        // Violated capacity constraint
+                        if (load > capacity)
+                            return -1;
+
+                        routeCost += CostMatrix[lastRequest, request.Id];
+                        lastRequest = request.Id;
+                    }
+                }
+
+                // Planned routes
+                foreach(var request in Solution.Data[vehicle]) {
+                    var req = GetRequest(request);
+                    load += req.Amount;
+
+                    // Violated capacity constraint
+                    if (load > capacity)
+                        return -1;
+
+                    routeCost += CostMatrix[lastRequest, request];
+                    lastRequest = request;
+                }
+
+                totalCost += routeCost;
+            }
+
+            return totalCost;
+        }
+
         /// <summary>
         /// Creates a cost matrix that only contains data for given requests/mapping
         /// </summary>

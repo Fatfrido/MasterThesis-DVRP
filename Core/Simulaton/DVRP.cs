@@ -28,7 +28,7 @@ namespace DVRP.Simulaton
         private SimulationQueue eventQueue;
         private Store requestPipe;
 
-        public WorldState WorldState { get; set; }
+        public static WorldState WorldState { get; set; }
 
         private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
             env.Log("Publish initial problem");
@@ -103,7 +103,7 @@ namespace DVRP.Simulaton
             /// <summary>
             /// The current request the vehicle is serving or driving to
             /// </summary>
-            public Domain.Request CurrentRequest { get; set; }
+            public int CurrentRequest { get; set; }
 
             public bool IsIdle { get; private set; } = false;
 
@@ -118,7 +118,7 @@ namespace DVRP.Simulaton
             public Vehicle(PseudoRealtimeSimulation env, int capacity, Store pipe, int id, Store dispatcherRequest, Domain.Request depot) : base(env) {
                 Capacity = capacity;
                 Id = id;
-                CurrentRequest = depot; // start at the depot
+                CurrentRequest = depot.Id; // start at the depot
 
                 env.Process(Working(env, pipe, dispatcherRequest));
             }
@@ -144,16 +144,19 @@ namespace DVRP.Simulaton
                     var assignment = (int) get.Value;
 
                     // Driving to the current position is not possible. Ignore and continue
-                    if (assignment != CurrentRequest.Id) {
+                    if (assignment != CurrentRequest) {
+                        var travelTime = WorldState.CostMatrix[CurrentRequest, assignment];
+                        CurrentRequest = assignment;
+
                         env.Log($"[{Id}] Driving to customer {assignment}.");
 
                         // travel time
-                        yield return env.TimeoutD(15);
+                        yield return env.Timeout(TimeSpan.FromSeconds(travelTime));
 
                         env.Log($"[{Id}] Arrived at customer {assignment}.");
 
                         // service time
-                        yield return env.TimeoutD(3);
+                        yield return env.Timeout(TimeSpan.FromSeconds(1));
                         env.Log($"[{Id}] Serviced customer {assignment}.");
                     }
                 }
@@ -217,12 +220,12 @@ namespace DVRP.Simulaton
         }
 
         private void HandleDecision(string message) {
-            Console.WriteLine("Received new solution");
             realTimeEnforcer--;
             WorldState.Solution = JsonSerializer.Deserialize<Solution>(message);
+            Console.WriteLine($"Received new solution: {WorldState.EvaluateCurrentSolution()}");
 
             // reset index of current solution
-            for(int i = 0; i < currentSolutionIdx.Length; i++) {
+            for (int i = 0; i < currentSolutionIdx.Length; i++) {
                 currentSolutionIdx[i] = 0;
             }
 

@@ -36,7 +36,7 @@ namespace DVRP.Domain
         public override string ToString() {
             var sb = new StringBuilder();
 
-            sb.Append(">>> SOLUTION");
+            sb.Append(">>> SOLUTION").AppendLine();
 
             for(int i = 0; i < Data.GetLength(0); i++) { // vehicles
                 if(Data[i] != null) {
