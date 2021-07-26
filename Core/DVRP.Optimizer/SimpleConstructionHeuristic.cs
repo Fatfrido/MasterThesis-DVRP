@@ -11,6 +11,7 @@ namespace DVRP.Optimizer
             var solution = new Solution(problem.VehicleCount);
             int currentVehicle = 0;
             int currentVehicleCapacity = problem.VehicleCapacity[currentVehicle];
+            Console.WriteLine(new StringBuilder().AppendJoin(',', problem.VehicleCapacity));
             var route = new List<int>();
 
             foreach(var request in problem.Requests) {

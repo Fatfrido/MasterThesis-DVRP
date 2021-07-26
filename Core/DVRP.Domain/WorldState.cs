@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace DVRP.Domain
 {
@@ -11,12 +12,12 @@ namespace DVRP.Domain
         /// Value is a request and the key it's id
         /// Used to evaluate the final cost
         /// </summary>
-        public Dictionary<int, Request> History { get; set; }
+        public Dictionary<int, Request> History { get; private set; }
 
         /// <summary>
         /// Contains the current request for each vehicle (index)
         /// </summary>
-        public int[] CurrentRequests { get; set; }
+        public int[] CurrentRequests { get; private set; }
 
         /// <summary>
         /// Known requests; dynamically revealed requests are added to this dictionary
@@ -27,26 +28,42 @@ namespace DVRP.Domain
         /// <summary>
         /// Capacity for each vehicle (index)
         /// </summary>
-        public int[] Capacities { get; set; }
+        public int[] Capacities { get; private set; }
 
         /// <summary>
         /// Total load of each vehicle - must not succeed it's capacity
         /// </summary>
-        public int[] FreeCapacities { get; set; }
+        public int[] FreeCapacities { get; private set; }
 
         /// <summary>
         /// The start end endpoint of each vehicle
         /// </summary>
         public Request Depot { get; private set; }
 
+        /// <summary>
+        /// Cost matrix representing the cost of travelling between two requests
+        /// </summary>
         public long[,] CostMatrix { get; private set; }
 
+        /// <summary>
+        /// Number of available vehicles
+        /// </summary>
         public int VehicleCount { get; private set; }
 
         /// <summary>
         /// The solution currently used for assigning requests to vehicles
         /// </summary>
-        public Solution Solution { get; set; }
+        public static Solution Solution {
+            get => _solution;
+            set {
+                solutionMutex.WaitOne();
+                _solution = value;
+                solutionMutex.ReleaseMutex();
+            }
+        }
+
+        private static Mutex solutionMutex = new Mutex(false);
+        private static Solution _solution;
 
         public WorldState(int vehicles, Request depot, Request[] knownRequests, int[] capacities) {
             History = new Dictionary<int, Request>();
@@ -66,7 +83,7 @@ namespace DVRP.Domain
 
             CostMatrix = CalculateCostMatrix();
             Capacities = capacities;
-            FreeCapacities = capacities;
+            FreeCapacities = capacities.ToArray();
         }
 
         /// <summary>
@@ -83,16 +100,24 @@ namespace DVRP.Domain
         /// </summary>
         /// <param name="vehicle"></param>
         /// <param name="request"></param>
-        public void CommitRequest(int vehicle, int request) {
-            if(request != 0) { // dont mind the depot
+        /// <returns>True if the commit was successful</returns>
+        public bool CommitRequest(int vehicle, int request) {
+            if(request != 0 && KnownRequests.ContainsKey(request)) { // dont mind the depot
                 CurrentRequests[vehicle] = request; // assign request to vehicle
                 FreeCapacities[vehicle] -= KnownRequests[request].Amount; // update available vehicle capacity
                 KnownRequests[request].Vehicle = vehicle; // assign vehicle to request
                 History.Add(KnownRequests[request].Id, KnownRequests[request]); // add request to history
                 KnownRequests.Remove(request); // remove request from known request since it is already assigned to a vehicle
+                return true;
             }
+
+            return false;
         }
 
+        /// <summary>
+        /// Creates a <see cref="Problem"/> based on the information contained in the <see cref="WorldState"/>
+        /// </summary>
+        /// <returns></returns>
         public Problem ToProblem() {
             var requests = KnownRequests.Values.ToArray();
             var mapping = new int[KnownRequests.Count + 1];
@@ -116,6 +141,7 @@ namespace DVRP.Domain
         }
 
         public double EvaluateCurrentSolution() {
+            solutionMutex.WaitOne(); // solution must not be changed during execution
             var totalCost = 0.0;
 
             // TODO check if every request is serviced
@@ -143,7 +169,7 @@ namespace DVRP.Domain
                 }
 
                 // Planned routes
-                foreach(var request in Solution.Data[vehicle]) {
+                foreach(var request in Solution.Data[vehicle]) { // solution can be modified!!
                     var req = GetRequest(request);
                     load += req.Amount;
 
@@ -157,6 +183,8 @@ namespace DVRP.Domain
 
                 totalCost += routeCost;
             }
+
+            solutionMutex.ReleaseMutex();
 
             return totalCost;
         }

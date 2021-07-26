@@ -34,9 +34,8 @@ namespace DVRP.Simulaton
             env.Log("Publish initial problem");
             realTimeEnforcer++;
             env.SetRealtime();
+            Thread.Sleep(500); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
             eventQueue.Publish(WorldState.ToProblem());
-            //Thread.Sleep(500);
-            //eventQueue.Publish(WorldState.ToProblem());
 
             foreach (var request in dynamicRequests) {
                 yield return env.Timeout(TimeSpan.FromSeconds(request.Key));
@@ -67,9 +66,10 @@ namespace DVRP.Simulaton
                         if (WorldState.Solution.Data[i].Count() > 1 && vehicles[i].IsIdle) { // if there is a customer (not depot) planned for the vehicle and it is not doing anything
                             var nextRequest = WorldState.Solution.Data[i].First();
 
-                            WorldState.CommitRequest(i, nextRequest);
-                            pipes[i].Put(nextRequest); // assign the first customer on the route
-                            currentSolutionIdx[i]++;
+                            if (WorldState.CommitRequest(i, nextRequest)) {
+                                pipes[i].Put(nextRequest); // assign the first customer on the route
+                                currentSolutionIdx[i]++;
+                            }
                         }
                     }
                 } else if(WorldState.Solution.Data[vehicle].Count() > currentSolutionIdx[vehicle]) {
@@ -77,9 +77,10 @@ namespace DVRP.Simulaton
 
                     // Check if vehicle is not already at the next request (empty routes)
                     if(WorldState.CurrentRequests[vehicle] != nextRequest) {
-                        pipes[vehicle].Put(nextRequest);
-                        WorldState.CommitRequest(vehicle, nextRequest);
-                        currentSolutionIdx[vehicle]++;
+                        if(WorldState.CommitRequest(vehicle, nextRequest)) {
+                            pipes[vehicle].Put(nextRequest);
+                            currentSolutionIdx[vehicle]++;
+                        }
                     }
                 }
             }
