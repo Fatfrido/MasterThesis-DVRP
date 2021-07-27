@@ -218,6 +218,11 @@ namespace DVRP.Simulaton
             vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, vehicleCapacity, pipes[x], x, requestPipe, depot)).ToArray();
 
             env.Run();
+
+            Console.WriteLine(WorldState.GetFinalSolution());
+            // TODO get final cost
+
+            Console.ReadKey();
         }
 
         private void HandleDecision(string message) {

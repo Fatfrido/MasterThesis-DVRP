@@ -217,6 +217,29 @@ namespace DVRP.Domain
             return result;
         }
 
+        public Solution GetFinalSolution() {
+            var solution = new Solution(VehicleCount);
+            var routes = new List<int>[VehicleCount];
+
+            // init
+            for(int i = 0; i < routes.Length; i++) {
+                routes[i] = new List<int>();
+            }
+
+            // Recreate routes from history
+            foreach(var entry in History) {
+                var request = entry.Value;
+                routes[request.Vehicle].Add(request.Id);
+            }
+
+            // Add routes to solution
+            for(int i = 0; i < routes.Length; i++) {
+                solution.AddRoute(i, routes[i].ToArray());
+            }
+
+            return solution;
+        }
+
         /// <summary>
         /// Creates a cost matrix that only contains data for given requests/mapping
         /// </summary>
