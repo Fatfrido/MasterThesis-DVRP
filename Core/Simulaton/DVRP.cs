@@ -222,16 +222,21 @@ namespace DVRP.Simulaton
 
         private void HandleDecision(string message) {
             realTimeEnforcer--;
-            WorldState.Solution = JsonSerializer.Deserialize<Solution>(message);
-            Console.WriteLine($"Received new solution: {WorldState.EvaluateCurrentSolution()}");
+            var solution = JsonSerializer.Deserialize<Solution>(message);
 
-            // reset index of current solution
-            for (int i = 0; i < currentSolutionIdx.Length; i++) {
-                currentSolutionIdx[i] = 0;
+            // Check if the solution is still feasible for the current world state
+            var cost = WorldState.EvaluateSolution(solution);
+            Console.WriteLine($"Received solution with cost: {cost}");
+            if (cost >= 0) {
+                WorldState.Solution = solution;
+
+                // reset index of current solution
+                for (int i = 0; i < currentSolutionIdx.Length; i++) {
+                    currentSolutionIdx[i] = 0;
+                }
+
+                requestPipe.Put(-1);
             }
-
-            requestPipe.Put(-1);
-            //Console.WriteLine($"Received decision: {message}");
         }
 
         private void HandleScore(string message) {
@@ -239,30 +244,6 @@ namespace DVRP.Simulaton
             Console.WriteLine($"Publish score: {score}");
             eventQueue.Publish(score);*/
         }
-
-        /*private double CalcScore(Solution solution) {
-            double totalLength = 0;
-
-            foreach(var route in solution.Data) {
-                Domain.Request prev = depot;
-                var capacity = vehicleCapacity;
-                double length = 0;
-
-                foreach(var request in route) {
-                    capacity -= currentRequests[request].Amount;
-
-                    if (capacity < 0) // infeasible solution
-                        return -1.0;
-
-                    length += prev.Distance(currentRequests[request]);
-                    prev = currentRequests[request];
-                }
-
-                totalLength += length;
-            }
-
-            return totalLength;
-        }*/
 
         private Domain.Request LoadDepotMock() {
             return new Domain.Request(0, 0, 0, 0);

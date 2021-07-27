@@ -150,13 +150,17 @@ namespace DVRP.Domain
                 );
         }
 
-        public double EvaluateCurrentSolution() {
-            solutionMutex.WaitOne(); // solution must not be changed during execution
+        /// <summary>
+        /// Evaluates a given <see cref="Solution"/> based on the current world state
+        /// </summary>
+        /// <param name="solution"></param>
+        /// <returns></returns>
+        public double EvaluateSolution(Solution solution) {
             var totalCost = 0.0;
 
             // TODO check if every request is serviced
 
-            for(int vehicle = 0; vehicle < VehicleCount; vehicle++) {
+            for (int vehicle = 0; vehicle < VehicleCount; vehicle++) {
                 var routeCost = 0.0;
                 var capacity = Capacities[vehicle];
                 var load = 0;
@@ -164,8 +168,8 @@ namespace DVRP.Domain
                 // TODO add green-vrp stuff here
 
                 // Finished requests
-                foreach(var entry in History) {
-                    if(entry.Value.Vehicle == vehicle) {
+                foreach (var entry in History) {
+                    if (entry.Value.Vehicle == vehicle) {
                         var request = entry.Value;
                         load += request.Amount;
 
@@ -179,7 +183,7 @@ namespace DVRP.Domain
                 }
 
                 // Planned routes
-                foreach(var request in Solution.Data[vehicle]) { // solution can be modified!!
+                foreach (var request in solution.Data[vehicle]) { // solution can be modified!!
                     var req = GetRequest(request);
                     load += req.Amount;
 
@@ -194,9 +198,19 @@ namespace DVRP.Domain
                 totalCost += routeCost;
             }
 
+            return totalCost;
+        }
+
+        /// <summary>
+        /// Evaluates the currently used <see cref="Solution"/>
+        /// </summary>
+        /// <returns></returns>
+        public double EvaluateCurrentSolution() {
+            solutionMutex.WaitOne(); // solution must not be changed during execution
+            var result = EvaluateSolution(Solution);
             solutionMutex.ReleaseMutex();
 
-            return totalCost;
+            return result;
         }
 
         /// <summary>
