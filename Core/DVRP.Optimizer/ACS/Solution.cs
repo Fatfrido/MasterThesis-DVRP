@@ -31,20 +31,20 @@ namespace DVRP.Optimizer.ACS
         }
 
         public DVRP.Domain.Solution ConvertToDomainSolution() {
-            var solution = new DVRP.Domain.Solution();
+            var solution = new DVRP.Domain.Solution(vehicleCount);
             int vehicle = -1;
             var route = new List<int>();
 
             // Split the big route at the duplicated depots to optain a single route for each vehicle
             for(int i = 0; i < Route.Length; i++) {
-                if(IsDummyDepot(i)) { // Change current vehicle
-                    if(vehicle < 0) { // not the first vehicle
+                if(IsDummyDepot(i)) { // set current vehicle if a dummy depot is encountered 
+                    if(vehicle >= 0) { // not the first dummy depot
                         solution.AddRoute(vehicle, route.ToArray());
                         route.Clear();
                     }
                     vehicle = Route[i];
-                } else { // Add customer to route
-                    route.Add(Route[i]);
+                } else { // request
+                    route.Add(Route[i] - vehicleCount); // use correct index without dummy depots
                 }
             }
 
@@ -54,7 +54,7 @@ namespace DVRP.Optimizer.ACS
         }
 
         public bool IsDummyDepot(int index) {
-            return 0 <= index && index <= vehicleCount;
+            return Route[index] < vehicleCount;
         }
 
         public int GetRealIndex(int index) {
