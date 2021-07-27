@@ -63,7 +63,7 @@ namespace DVRP.Simulaton
 
                 if(vehicle == -1) { // A new solution is available
                     for(int i = 0; i < vehicleCount; i++) { // for every vehicle
-                        if (WorldState.Solution.Data[i].Count() > 1 && vehicles[i].IsIdle) { // if there is a customer (not depot) planned for the vehicle and it is not doing anything
+                        if (WorldState.Solution.Data[i].Count() > 0 && vehicles[i].IsIdle) { // if there is a customer planned for the vehicle and it is not doing anything
                             var nextRequest = WorldState.Solution.Data[i].First();
 
                             if (WorldState.CommitRequest(i, nextRequest)) {
