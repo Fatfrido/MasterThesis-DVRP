@@ -82,8 +82,8 @@ namespace DVRP.Optimizer
             var problem = JsonConvert.DeserializeObject<Problem>(message);
 
             //queue.Publish(SimpleConstructionHeuristic.Solve(problem));
-            //queue.Publish(TabuSearch.Solve(problem));
-            queue.Publish(ACSSolver.Solve(problem, 10, 3));
+            queue.Publish(TabuSearch.Solve(problem));
+            //queue.Publish(ACSSolver.Solve(problem, 10, 3));
         }
 
         private static void HandleScore(string message) {

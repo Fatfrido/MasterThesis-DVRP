@@ -120,9 +120,13 @@ namespace DVRP.Domain
         /// <returns></returns>
         public Problem ToProblem() {
             var requests = KnownRequests.Values.ToArray();
-            var mapping = new int[requests.Length + 1]; // mind the depot
+            var currentRequests = CurrentRequests.Where(x => x != Depot.Id).ToArray(); // get each request where a vehicle is positioned
+            var mapping = new int[requests.Length + currentRequests.Length + 1]; // mind the depot
             mapping[0] = 0; // depot
             requests.Select(r => r.Id).ToArray().CopyTo(mapping, 1);
+            currentRequests.CopyTo(mapping, requests.Length + 1); // mind the depot
+
+            var start = CurrentRequests.Select(x => Array.IndexOf(mapping, x)).ToArray(); // indices of the starting requests
 
             var reducedCostMatrix = CreateReducedCostMatrix(mapping);
 
@@ -144,7 +148,7 @@ namespace DVRP.Domain
                 requests,
                 VehicleCount,
                 FreeCapacities,
-                CurrentRequests,
+                start,
                 reducedCostMatrix,
                 mapping
                 );

@@ -33,7 +33,7 @@ namespace DVRP.Optimizer
             //routing.SetArcCostEvaluatorOfVehicle(transitCallbackIndex, vehicle);
             
             // Get demand for each request
-            var demands = new int[problem.Requests.Length + 1];
+            var demands = new int[problem.CostMatrix.GetLength(0)];
             problem.Requests.Select(r => r.Amount).ToArray().CopyTo(demands, 1);
 
             // Add capacity constraint
@@ -76,7 +76,7 @@ namespace DVRP.Optimizer
                 while(!routing.IsEnd(index)) {
                     var node = manager.IndexToNode((int) index);
 
-                    if(node != problem.Depot) {
+                    if(node != problem.Depot && node != problem.Start[i]) { // ignore the depot and the current position
                         route.Add(node);
                     }     
                     
