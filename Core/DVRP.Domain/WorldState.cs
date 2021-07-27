@@ -120,15 +120,25 @@ namespace DVRP.Domain
         /// <returns></returns>
         public Problem ToProblem() {
             var requests = KnownRequests.Values.ToArray();
-            var mapping = new int[KnownRequests.Count + 1];
-
-            // Create the mapping
+            var mapping = new int[requests.Length + 1]; // mind the depot
             mapping[0] = 0; // depot
-            for (int i = 1; i < mapping.Length; i++) {
-                mapping[i] = requests[i - 1].Id;
-            }
+            requests.Select(r => r.Id).ToArray().CopyTo(mapping, 1);
 
             var reducedCostMatrix = CreateReducedCostMatrix(mapping);
+
+            /*Console.WriteLine("-------------------------------");
+            Console.WriteLine($"Requests: {requests.Length}");
+            Console.WriteLine(">>> Cost Matrix");
+            var sb = new StringBuilder();
+
+            for(int i = 0; i < reducedCostMatrix.GetLength(0); i++) {    
+                for(int j = 0; j < reducedCostMatrix.GetLength(0); j++) {
+                    sb.Append($"{reducedCostMatrix[i,j]}\t");
+                }
+                sb.AppendLine();
+            }
+            sb.AppendLine();
+            Console.WriteLine(sb.ToString());*/
 
             return new Problem(
                 requests,

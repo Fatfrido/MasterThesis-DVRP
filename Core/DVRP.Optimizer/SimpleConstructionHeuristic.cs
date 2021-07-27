@@ -40,6 +40,7 @@ namespace DVRP.Optimizer
                 }
             }
 
+            // mapping is not necessary here because we are working with ids already
             Console.WriteLine(solution);
             return solution;
         }

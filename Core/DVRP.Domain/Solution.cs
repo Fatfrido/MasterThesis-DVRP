@@ -24,10 +24,8 @@ namespace DVRP.Domain
         }
 
         public void ApplyMapping(int[] mapping) {
-            var vehicles = Data.GetLength(0) - 1;
-
-            for(int i = 0; i < vehicles; i++) {
-                for(int j = 0; j < Data[i].Length; j++) {
+            for (int i = 0; i < Data.GetLength(0); i++) { // vehicle
+                for(int j = 0; j < Data[i].Length; j++) { // tour
                     Data[i][j] = mapping[Data[i][j]];
                 }
             }
