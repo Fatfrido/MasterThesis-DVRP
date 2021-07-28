@@ -22,7 +22,7 @@ namespace DVRP.Optimizer.ACS
         public Ant(Problem problem, double initialPheromoneValue, double[,] pheromoneMatrix = null, double pheromoneEvaporation = 0.5, double pheromoneImportance = 0.5) {
             this.problem = problem;
             this.initialPheromoneValue = initialPheromoneValue;
-            costMatrix = TransformDistanceMatrix(problem.VehicleCount, problem.Requests.Length, problem.CostMatrix);
+            costMatrix = TransformDistanceMatrix(problem);
             this.pheromoneEvaporation = pheromoneEvaporation;
             this.pheromoneImportance = pheromoneImportance;
 
@@ -37,40 +37,73 @@ namespace DVRP.Optimizer.ACS
         /// </summary>
         /// <returns></returns>
         public Solution FindSolution() {
-            var initialSolution = BuildInitialSolution(problem.VehicleCount, problem.Requests.Length, 0);
-            Console.WriteLine("Build initial solution");
+            var initialSolution = BuildInitialSolution(problem);
+            //Console.WriteLine("Build initial solution");
             initialSolution.Cost = Evaluate(initialSolution, problem);
 
-            while(initialSolution.Cost < 0) { // solution must be feasible -> improve BuildInitialSolution to only return feasible solutions
-                Console.WriteLine("Build intial solution");
-                initialSolution = BuildInitialSolution(problem.VehicleCount, problem.Requests.Length, 0);
+            while(initialSolution.Cost < 0) { // solution must be feasible -> improve BuildInitialSolution to only return feasible solutions?
+                //Console.WriteLine("Build intial solution");
+                initialSolution = BuildInitialSolution(problem);
             }
-            Console.WriteLine("Evaluating solution");
-            return LocalSearch(initialSolution, problem, 1);
+            //Console.WriteLine("Evaluating solution");
+            return LocalSearch(initialSolution, problem, 10);
         }
 
-        private long[,] TransformDistanceMatrix(int vehicleCount, int requestCount, long[,] distanceMatrix) {
-            var length = vehicleCount + requestCount;
+        private long[,] TransformDistanceMatrix(Problem problem) {
+            var length = problem.VehicleCount + problem.Requests.Length + 1; // mind the depot
             var matrix = new long[length, length];
 
-            // TODO mind different starting points
+            // dummy depots (starting positions) are inserted after the real depot
+            // therefore the index of the original cost matrix is vehicleCount + 1 (depot) lower than in the new matrix
+            var requestOffset = problem.VehicleCount + 1;
 
-            for(int i = 0; i < length; i++) {
-                for(int j = 0; j < length; j++) {
-                    if(i < vehicleCount && j >= vehicleCount) { // from dummy depot to request
-                        matrix[i, j] = distanceMatrix[0, j - vehicleCount];
-                    } else if(j < vehicleCount && i >= vehicleCount) { // from request to dummy depot
-                        matrix[i, j] = distanceMatrix[i - vehicleCount, 0];
-                    } else if(i < vehicleCount && j < vehicleCount){ // dummy depot to dummy depot
-                        matrix[i, j] = 1; // TODO: is 0 a problem here??
-                    } else { // copy
-                        matrix[i, j] = distanceMatrix[i - vehicleCount, j - vehicleCount];
+            var from = 0;
+            var to = 0;
+            for (int i = 0; i < length; i++) {
+                if(i > 0) { // depot needs no mapping
+                    if(i < requestOffset) { // dummy depot
+                        from = problem.Start[i - 1];
+                    } else { // request
+                        from = i - requestOffset + 1; // mind depot in original matrix
                     }
+                }
+
+                for (int j = 0; j < length; j++) {
+                    if (j > 0) { // depot needs no mapping
+                        if (j < requestOffset) { // dummy depot
+                            to = problem.Start[j - 1];
+                        } else { // request
+                            to = j - requestOffset + 1; // mind depot in original matrix
+                        }
+                    }
+
+                    matrix[i, j] = problem.CostMatrix[from, to];
                 }
             }
 
+            /*Console.WriteLine("-----------------------------------------------------");
+            Console.WriteLine("Original matrix:");
+            Console.WriteLine(PrintMatrix(problem.CostMatrix));
+
+            Console.WriteLine("Transformed matrix:");
+            Console.WriteLine(PrintMatrix(matrix));*/
+
             return matrix;
         }
+
+        /*private string PrintMatrix(long[,] matrix) {
+            var sb = new StringBuilder();
+
+            for(int i = 0; i < matrix.GetLength(0); i++) {
+                for(int j = 0; j < matrix.GetLength(0); j++) {
+                    sb.Append($"{matrix[i,j]}\t");
+                }
+                sb.AppendLine();
+            }
+            sb.AppendLine();
+
+            return sb.ToString();
+        }*/
 
         /// <summary>
         /// Extends the original pheromone matrtix if necessary
@@ -124,62 +157,75 @@ namespace DVRP.Optimizer.ACS
         }
 
         /// <summary>
-        /// Constructs a single feasible solution
+        /// Constructs a single solution
         /// </summary>
         /// <param name="vehicleCount"></param>
         /// <returns></returns>
-        private Solution BuildInitialSolution(int vehicleCount, int requestCount, int startRequest) {
-            var solution = new Solution(vehicleCount);
+        private Solution BuildInitialSolution(Problem problem) {
+            var solution = new Solution(problem.VehicleCount);
             var route = new List<int>();
-            var length = requestCount + vehicleCount; // the total length of a solution (includes dummy depots)
+            var length = problem.Requests.Length + problem.VehicleCount; // the total length of a solution (includes dummy depots but not the real depot)
+            
+            var currentRequestIdx = 0;
+            var nextRequest = 0;
+
+            var vehicle = 0;
+            var vehicleCapacity = problem.VehicleCapacity[vehicle];
 
             // store already visited locations
             var status = new bool[length];
-            var visitedLocationsNumber = 0;
-            var currentCustomer = startRequest;
+            
+            // Add start dummy depot
+            status[0] = true;
+            route.Add(currentRequestIdx);
 
-            // build solution
-            while(visitedLocationsNumber < length) {
-                // select next customer
+            for(int i = 0; i < length - 1; i++) {
+                // Find valid options
+                var options = new List<int>();
 
-                // find valid options
-                List<int> options = new List<int>();
-                for(int i = 0; i < status.Length; i++) {
-                    if(status[i] == false) {
-                        options.Add(i);
+                for(int j = 0; j < status.Length; j++) {
+                    if(status[j] == false) { // each request is visited exactly once 
+                        // check capacity constraint for normal requests (not dummy depots)
+                        //if(j < problem.VehicleCount || vehicleCapacity - problem.Requests[j - problem.VehicleCount].Amount >= 0) {
+                        options.Add(j);
+                        //}
                     }
                 }
-                // TODO: capacity constraint
 
-                // calculate attractivity
+                // Calculate attractivity for each option
                 var attractivenessSum = 0.0;
                 var attractiveness = new Dictionary<int, double>(options.Count());
 
-                foreach(var option in options) {
-                    var generalAttractiveness = 1.0 / costMatrix[currentCustomer, option];
-                    var pheromoneAttractiveness = Math.Pow(pheromoneMatrix[currentCustomer, option], pheromoneImportance);
+                foreach (var option in options) {
+                    var generalAttractiveness = 1.0 / costMatrix[currentRequestIdx + 1, option + 1]; // cost matrix includes the real depot at index 0
+                    var pheromoneAttractiveness = Math.Pow(pheromoneMatrix[currentRequestIdx, option], pheromoneImportance);
                     attractiveness[option] = generalAttractiveness * pheromoneAttractiveness;
                     attractivenessSum += attractiveness[option];
                 }
 
                 // calculate probability
                 var probabilities = new Dictionary<int, double>(options.Count());
-                foreach(var option in options) {
+
+                foreach (var option in options) {
                     probabilities[option] = attractiveness[option] / attractivenessSum;
                 }
 
-                var nextCustomer = SelectRandomCustomer(probabilities);
-                route.Add(currentCustomer);
+                nextRequest = SelectRandomCustomer(probabilities);
+                status[nextRequest] = true;
+                route.Add(nextRequest);
 
-                // update local trail level
-                UpdateTrailLevel(currentCustomer, nextCustomer);
+                // Check if a dummy depot has been selected
+                if(nextRequest < problem.VehicleCount) {
+                    vehicle = nextRequest;
+                    vehicleCapacity = problem.VehicleCapacity[vehicle];
+                } else { // update available vehicle capacity
+                    vehicleCapacity -= problem.Requests[nextRequest - problem.VehicleCount].Amount;
+                }
 
-                status[nextCustomer] = true;
-                visitedLocationsNumber++;
-                currentCustomer = nextCustomer;
+                currentRequestIdx = nextRequest;
             }
 
-            solution.Route = route.ToArray();
+            solution.Route = route.Select(x => x + 1).ToArray(); // increase each index by 1 to match the global cost matrix
 
             Console.WriteLine($"Initial solution: {solution}");
             return solution;
@@ -194,16 +240,25 @@ namespace DVRP.Optimizer.ACS
         /// <returns></returns>
         private Solution LocalSearch(Solution initialSolution, Problem problem, int maxComputationTime) {
             // find best solution with local search
-            var neighborhood = GetNeighborhood(initialSolution, problem);
             var bestSolution = initialSolution;
+            var iterations = 0; //TODO fix computation time
 
-            foreach(var neighbor in neighborhood) {
-                if(neighbor.Cost < bestSolution.Cost) {
-                    bestSolution = neighbor;
+            while(iterations < maxComputationTime) {
+                // Try to place a request at a different position
+                var fromIndex = random.Next(1, bestSolution.Route.Length - 1);
+                var toIndex = random.Next(1, bestSolution.Route.Length - 1);
+
+                var solution = bestSolution.MoveRequest(fromIndex, toIndex);
+                solution.Cost = Evaluate(solution, problem);
+
+                if(solution.IsValid() && solution.Cost < bestSolution.Cost) {
+                    bestSolution = solution;
+                    Console.WriteLine($"[Ant] Found personal best: {bestSolution.Cost}");
                 }
+
+                iterations++;
             }
 
-            Console.WriteLine($"Best solution: {bestSolution}");
             return bestSolution;
         }
 
@@ -254,30 +309,31 @@ namespace DVRP.Optimizer.ACS
                 return -1;
             }
 
+            // handle first dummy depot
             var vehicle = solution.Route[0];
             var currCapacity = problem.VehicleCapacity[0];
             var cost = 0.0;
 
             for(int i = 1; i < solution.Route.Length; i++) {
-                // check if current location is a dummy depot
+                // check if current request is a dummy depot
                 if(solution.IsDummyDepot(i)) {
+                    // change current vehicle
                     vehicle = solution.Route[i];
-                    currCapacity = problem.VehicleCapacity[0];
+                    currCapacity = problem.VehicleCapacity[vehicle - 1]; // capacities start with 0
                 } else {
-                    var requestIndex = solution.GetRealIndex(i);
+                    var requestIndex = solution.GetRealIndex(solution.Route[i] - 1);
                     currCapacity -= problem.Requests[requestIndex].Amount;
 
                     // check constraints
-                    if (currCapacity < 0) {
-                        Console.WriteLine("Violated capacity constraint");
+                    if(currCapacity < 0) {
                         return -1;
                     }
 
-                    var from = solution.GetRealIndex(i - 1);
-                    cost += problem.CostMatrix[from, requestIndex];
+                    cost += costMatrix[i, i + 1]; // cost matrix has depot at index 0
                 }
             }
 
+            solution.Cost = cost;
             return cost;
         }
 

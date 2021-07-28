@@ -219,6 +219,7 @@ namespace DVRP.Simulaton
 
             env.Run();
 
+            // TODO send result to optimizer
             Console.WriteLine(WorldState.GetFinalSolution());
             // TODO get final cost
 
@@ -232,7 +233,8 @@ namespace DVRP.Simulaton
             // Check if the solution is still feasible for the current world state
             var cost = WorldState.EvaluateSolution(solution);
             Console.WriteLine($"Received solution with cost: {cost}");
-            if (cost >= 0) {
+            Console.WriteLine(solution);
+            if (cost >= 0) { // might be 'worse' than current solution because of additional requests
                 WorldState.Solution = solution;
 
                 // reset index of current solution

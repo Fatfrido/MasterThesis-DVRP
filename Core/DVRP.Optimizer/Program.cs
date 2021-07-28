@@ -17,48 +17,6 @@ namespace DVRP.Optimizer
         private static OptimizerQueue queue;
 
         static void Main(string[] args) {
-            /*var requests = new Request[] {
-                new Request(0, 0, 0, 0),
-                new Request(12, 4, 10, 1),
-                new Request(2, 3, 15, 2),
-                new Request(20, 40, 30, 3),
-                new Request(12, 33, 2, 4),
-                new Request(4, 44, 37, 5),
-                new Request(21, 23, 50, 6)
-            };
-
-            //var start = Enumerable.Repeat(0, 5).ToArray();
-            var start = Enumerable.Range(0, 5).ToArray();
-
-            var requestNumber = requests.Length; // mind the depot!
-            var matrix = new long[requestNumber, requestNumber];
-
-            for (int fromNode = 0; fromNode < requestNumber; fromNode++) {
-                for (int toNode = 0; toNode < requestNumber; toNode++) {
-                    if (fromNode == toNode) {
-                        matrix[fromNode, toNode] = 1;
-                    } else {
-                        // Handle depot since it is not contained in KnownRequests
-
-                        // TODO add history!!
-                        var toRequest = requests[toNode];
-                        var fromRequest = requests[fromNode];
-
-                        matrix[fromNode, toNode] = (long) Math.Sqrt(Math.Pow(toRequest.X - fromRequest.X, 2) +
-                                                             Math.Pow(toRequest.Y - fromRequest.Y, 2));
-                    }
-                }
-            }
-
-            var problem = new Problem(
-                requests,
-                5,
-                100,
-                start,
-                matrix
-                );
-            var solution = TabuSearch.Solve(problem);*/
-
             queue = new OptimizerQueue("tcp://*:12346", "tcp://localhost:12345");
             queue.OnEvent += (sender, args) => {
                 switch (args.Topic) {
@@ -82,8 +40,8 @@ namespace DVRP.Optimizer
             var problem = JsonConvert.DeserializeObject<Problem>(message);
 
             //queue.Publish(SimpleConstructionHeuristic.Solve(problem));
-            queue.Publish(TabuSearch.Solve(problem));
-            //queue.Publish(ACSSolver.Solve(problem, 10, 3));
+            //queue.Publish(TabuSearch.Solve(problem));
+            queue.Publish(ACSSolver.Solve(problem, 100, 3));
         }
 
         private static void HandleScore(string message) {

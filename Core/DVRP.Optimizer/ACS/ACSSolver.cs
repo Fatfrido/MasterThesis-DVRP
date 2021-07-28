@@ -10,7 +10,7 @@ namespace DVRP.Optimizer.ACS
         private static double[,] pheromoneMatrix;
         private static double pheromoneEvaporation;
 
-        public static DVRP.Domain.Solution Solve(Problem problem, int computationTime, int antNumber, double pheromoneEvaporation = 0.5) {
+        public static DVRP.Domain.Solution Solve(Problem problem, int computationTime, int antNumber, double pheromoneEvaporation = 0.5, double pheromoneImportance = 0.5) {
             ACSSolver.pheromoneEvaporation = pheromoneEvaporation;
             
             // init pheromone level
@@ -23,11 +23,15 @@ namespace DVRP.Optimizer.ACS
 
             while(0 < computationTime) { // TODO computation time
                 for(int k = 0; k < antNumber; k++) {
-                    var ant = new Ant(problem, 0.2);
+                    var ant = new Ant(problem, 0.2, pheromoneMatrix, pheromoneEvaporation, pheromoneImportance);
                     Console.WriteLine($"[Ant-{k}] FindSolution...");
                     var solution = ant.FindSolution();
 
-                    if(bestSolution == null || solution.Cost < bestSolution.Cost) {
+                    if(bestSolution == null) {
+                        bestSolution = solution;
+                    }
+
+                    if(bestSolution.IsValid() && solution.Cost < bestSolution.Cost) {
                         bestSolution = solution;
                         Console.WriteLine($"[Ant-{k}] Found new best solution");
                     }
@@ -35,8 +39,8 @@ namespace DVRP.Optimizer.ACS
 
                 // update global pheromone trail
                 for(int i = 0; i < bestSolution.Route.Length - 1; i++) {
-                    var from = bestSolution.Route[i];
-                    var to = bestSolution.Route[i + 1];
+                    var from = bestSolution.Route[i] - 1;
+                    var to = bestSolution.Route[i + 1] - 1;
                     
                     // update every edge between each node (customer)
                     pheromoneMatrix[from, to] =
