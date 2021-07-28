@@ -24,16 +24,16 @@ namespace DVRP.Optimizer.ACS
             while(0 < computationTime) { // TODO computation time
                 for(int k = 0; k < antNumber; k++) {
                     var ant = new Ant(problem, 0.2, pheromoneMatrix, pheromoneEvaporation, pheromoneImportance);
-                    Console.WriteLine($"[Ant-{k}] FindSolution...");
+                    //Console.WriteLine($"[Ant-{k}] FindSolution...");
                     var solution = ant.FindSolution();
 
                     if(bestSolution == null) {
                         bestSolution = solution;
                     }
 
-                    if(bestSolution.IsValid() && solution.Cost < bestSolution.Cost) {
+                    if(solution.IsValid() && solution.Cost < bestSolution.Cost) {
                         bestSolution = solution;
-                        Console.WriteLine($"[Ant-{k}] Found new best solution");
+                        //Console.WriteLine($"[Ant-{k}] Found new best solution");
                     }
                 }
 
@@ -50,8 +50,10 @@ namespace DVRP.Optimizer.ACS
 
                 computationTime--; // this is just temporary
             }
+            Console.WriteLine($"Best solution: {bestSolution.Cost}");
             var convertedSolution = bestSolution.ConvertToDomainSolution();
             convertedSolution.ApplyMapping(problem.Mapping);
+            Console.WriteLine(convertedSolution);
 
             return convertedSolution;
         }

@@ -44,9 +44,16 @@ namespace DVRP.Optimizer.ACS
             while(initialSolution.Cost < 0) { // solution must be feasible -> improve BuildInitialSolution to only return feasible solutions?
                 //Console.WriteLine("Build intial solution");
                 initialSolution = BuildInitialSolution(problem);
+                initialSolution.Cost = Evaluate(initialSolution, problem);
             }
             //Console.WriteLine("Evaluating solution");
-            return LocalSearch(initialSolution, problem, 10);
+            var bestSolution = LocalSearch(initialSolution, problem, 100);
+
+            for(int i = 1; i < bestSolution.Route.Length; i++) {
+                UpdateTrailLevel(bestSolution.Route[i - 1] - 1, bestSolution.Route[i] - 1);
+            }
+
+            return bestSolution;
         }
 
         private long[,] TransformDistanceMatrix(Problem problem) {
@@ -81,29 +88,8 @@ namespace DVRP.Optimizer.ACS
                 }
             }
 
-            /*Console.WriteLine("-----------------------------------------------------");
-            Console.WriteLine("Original matrix:");
-            Console.WriteLine(PrintMatrix(problem.CostMatrix));
-
-            Console.WriteLine("Transformed matrix:");
-            Console.WriteLine(PrintMatrix(matrix));*/
-
             return matrix;
         }
-
-        /*private string PrintMatrix(long[,] matrix) {
-            var sb = new StringBuilder();
-
-            for(int i = 0; i < matrix.GetLength(0); i++) {
-                for(int j = 0; j < matrix.GetLength(0); j++) {
-                    sb.Append($"{matrix[i,j]}\t");
-                }
-                sb.AppendLine();
-            }
-            sb.AppendLine();
-
-            return sb.ToString();
-        }*/
 
         /// <summary>
         /// Extends the original pheromone matrtix if necessary
@@ -227,7 +213,6 @@ namespace DVRP.Optimizer.ACS
 
             solution.Route = route.Select(x => x + 1).ToArray(); // increase each index by 1 to match the global cost matrix
 
-            Console.WriteLine($"Initial solution: {solution}");
             return solution;
         }
 
@@ -253,7 +238,7 @@ namespace DVRP.Optimizer.ACS
 
                 if(solution.IsValid() && solution.Cost < bestSolution.Cost) {
                     bestSolution = solution;
-                    Console.WriteLine($"[Ant] Found personal best: {bestSolution.Cost}");
+                    //Console.WriteLine($"[Ant] Found personal best: {bestSolution.Cost}");
                 }
 
                 iterations++;
@@ -313,6 +298,7 @@ namespace DVRP.Optimizer.ACS
             var vehicle = solution.Route[0];
             var currCapacity = problem.VehicleCapacity[0];
             var cost = 0.0;
+            var lastRequest = solution.Route[0];
 
             for(int i = 1; i < solution.Route.Length; i++) {
                 // check if current request is a dummy depot
@@ -320,6 +306,7 @@ namespace DVRP.Optimizer.ACS
                     // change current vehicle
                     vehicle = solution.Route[i];
                     currCapacity = problem.VehicleCapacity[vehicle - 1]; // capacities start with 0
+                    lastRequest = vehicle;
                 } else {
                     var requestIndex = solution.GetRealIndex(solution.Route[i] - 1);
                     currCapacity -= problem.Requests[requestIndex].Amount;
@@ -329,37 +316,13 @@ namespace DVRP.Optimizer.ACS
                         return -1;
                     }
 
-                    cost += costMatrix[i, i + 1]; // cost matrix has depot at index 0
+                    cost += costMatrix[lastRequest, solution.Route[i]]; // cost matrix has depot at index 0
+                    lastRequest = solution.Route[i];
                 }
             }
 
             solution.Cost = cost;
             return cost;
-        }
-
-        /// <summary>
-        /// Calculates a swap2 neighborhood
-        /// </summary>
-        /// <param name="solution"></param>
-        /// <param name="problem"></param>
-        /// <returns></returns>
-        private IEnumerable<Solution> GetNeighborhood(Solution solution, Problem problem) { // TODO add time limit
-            var neighbors = new List<Solution>();
-
-            for(int i = 0; i < solution.Route.Length - 1; i++) {
-                for(int j = i + 1; j < solution.Route.Length; j++) {
-                    var neighbor = solution.Swap(i, j);
-                    var cost = Evaluate(neighbor, problem);
-                    if(cost >= 0) { // feasible solution
-                        neighbor.Cost = cost;
-
-                        // add to list of feasible neighbors
-                        neighbors.Add(neighbor);
-                    }
-                }
-            }
-
-            return neighbors;
         }
     }
 }

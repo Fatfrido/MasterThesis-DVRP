@@ -69,6 +69,7 @@ namespace DVRP.Simulaton
                             if (WorldState.CommitRequest(i, nextRequest)) {
                                 pipes[i].Put(nextRequest); // assign the first customer on the route
                                 currentSolutionIdx[i]++;
+                                eventQueue.Publish(WorldState.ToProblem());
                             }
                         }
                     }
@@ -80,6 +81,7 @@ namespace DVRP.Simulaton
                         if(WorldState.CommitRequest(vehicle, nextRequest)) {
                             pipes[vehicle].Put(nextRequest);
                             currentSolutionIdx[vehicle]++;
+                            eventQueue.Publish(WorldState.ToProblem());
                         }
                     }
                 }
@@ -221,6 +223,7 @@ namespace DVRP.Simulaton
 
             // TODO send result to optimizer
             Console.WriteLine(WorldState.GetFinalSolution());
+            Console.WriteLine($"Final cost: {WorldState.EvaluateCurrentSolution()}");
             // TODO get final cost
 
             Console.ReadKey();

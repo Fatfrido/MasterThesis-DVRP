@@ -30,6 +30,7 @@ namespace DVRP.Communication
         }
 
         public void Publish(Solution solution) {
+            Console.WriteLine(">>>>>>>>>>>>");
             var json = JsonSerializer.Serialize(solution);
             pubSocket.SendMoreFrame(publishChannel).SendFrame(json);
         }
@@ -46,6 +47,7 @@ namespace DVRP.Communication
                     var message = subSocket.ReceiveFrameString();
 
                     if(OnEvent != null) {
+                        Console.WriteLine("<<<<<<<<<<<<<");
                         OnEvent(this, new EventArgs(topic, message));
                     }
                 }
