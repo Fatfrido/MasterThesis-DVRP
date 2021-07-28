@@ -8,28 +8,20 @@ namespace DVRP.Optimizer.ACS
 {
     public class Ant
     {
-        // local pheromone matrix
-        // initial pheromone value
-        // cost matrix
         private long[,] costMatrix;
         private double[,] pheromoneMatrix;
         private double initialPheromoneValue;
-        private double pheromoneImportance; // 0 <= pheromoneImportance <= 1
+        private double pheromoneImportance;
         private Random random = new Random();
-        private double pheromoneEvaporation = 0.5; // 0 <= pheromoneEvaporation <= 1
+        private double pheromoneEvaporation;
         private Problem problem;
 
-        public Ant(Problem problem, double initialPheromoneValue, double[,] pheromoneMatrix = null, double pheromoneEvaporation = 0.5, double pheromoneImportance = 0.5) {
+        public Ant(Problem problem, double[,] pheromoneMatrix, long[,] costMatrix, double pheromoneEvaporation, double pheromoneImportance) {
             this.problem = problem;
-            this.initialPheromoneValue = initialPheromoneValue;
-            costMatrix = TransformDistanceMatrix(problem);
+            this.costMatrix = costMatrix;
             this.pheromoneEvaporation = pheromoneEvaporation;
             this.pheromoneImportance = pheromoneImportance;
-
-            // Take existing pheromone matrix or create a new one
-            this.pheromoneMatrix = pheromoneMatrix != null 
-                ? TransformPheromoneMatrix(problem.VehicleCount, problem.Requests.Length, pheromoneMatrix, initialPheromoneValue) 
-                : CreatePheromoneMatrix(problem.VehicleCount, problem.Requests.Length, initialPheromoneValue);
+            this.pheromoneMatrix = pheromoneMatrix;
         }
 
         /// <summary>
@@ -54,92 +46,6 @@ namespace DVRP.Optimizer.ACS
             }
 
             return bestSolution;
-        }
-
-        private long[,] TransformDistanceMatrix(Problem problem) {
-            var length = problem.VehicleCount + problem.Requests.Length + 1; // mind the depot
-            var matrix = new long[length, length];
-
-            // dummy depots (starting positions) are inserted after the real depot
-            // therefore the index of the original cost matrix is vehicleCount + 1 (depot) lower than in the new matrix
-            var requestOffset = problem.VehicleCount + 1;
-
-            var from = 0;
-            var to = 0;
-            for (int i = 0; i < length; i++) {
-                if(i > 0) { // depot needs no mapping
-                    if(i < requestOffset) { // dummy depot
-                        from = problem.Start[i - 1];
-                    } else { // request
-                        from = i - requestOffset + 1; // mind depot in original matrix
-                    }
-                }
-
-                for (int j = 0; j < length; j++) {
-                    if (j > 0) { // depot needs no mapping
-                        if (j < requestOffset) { // dummy depot
-                            to = problem.Start[j - 1];
-                        } else { // request
-                            to = j - requestOffset + 1; // mind depot in original matrix
-                        }
-                    }
-
-                    matrix[i, j] = problem.CostMatrix[from, to];
-                }
-            }
-
-            return matrix;
-        }
-
-        /// <summary>
-        /// Extends the original pheromone matrtix if necessary
-        /// </summary>
-        /// <param name="vehicleCount"></param>
-        /// <param name="requestCount"></param>
-        /// <param name="pheromoneMatrix"></param>
-        /// <param name="initialPheromoneValue"></param>
-        /// <returns></returns>
-        private double[,] TransformPheromoneMatrix(int vehicleCount, int requestCount, double[,] pheromoneMatrix, double initialPheromoneValue) {
-            var length = vehicleCount + requestCount;
-
-            if(pheromoneMatrix.Length == length) {
-                return pheromoneMatrix;
-            }
-
-            // Only works with more requests, request must not be less than in previous iterations
-            var matrix = new double[length, length];
-
-            for(int i = 0; i < length; i++) {
-                for(int j = 0; j < length; j++) {
-                    if(i >= pheromoneMatrix.Length || j >= pheromoneMatrix.Length) {
-                        matrix[i, j] = pheromoneMatrix[i, j];
-                    } else {
-                        matrix[i, j] = initialPheromoneValue;
-                    }
-                }
-            }
-
-            return matrix;
-        }
-
-        /// <summary>
-        /// Creates a new pheromone matrix
-        /// </summary>
-        /// <param name="vehicleCount"></param>
-        /// <param name="requestCount"></param>
-        /// <param name="initialPheromoneValue"></param>
-        /// <returns></returns>
-        private double[,] CreatePheromoneMatrix(int vehicleCount, int requestCount, double initialPheromoneValue) {
-            var length = vehicleCount + requestCount;
-            var matrix = new double[length, length];
-
-            for(int i = 0; i < length; i++) {
-                for(int j = 0; j < length; j++) {
-                    matrix[i, j] = initialPheromoneValue;
-                }
-            }
-
-            return matrix;
         }
 
         /// <summary>
