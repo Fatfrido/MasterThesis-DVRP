@@ -8,11 +8,8 @@ namespace DVRP.Optimizer.ACS
     public class ACSSolver
     {
         private static double[,] pheromoneMatrix;
-        private static double pheromoneEvaporation;
 
         public static DVRP.Domain.Solution Solve(Problem problem, int computationTime, int antNumber, double pheromoneEvaporation = 0.5, double pheromoneImportance = 0.5) {
-            ACSSolver.pheromoneEvaporation = pheromoneEvaporation;
-            
             // init pheromone level
             if(pheromoneMatrix == null) {
                 // matrix needs to include dummy depots for each vehicle

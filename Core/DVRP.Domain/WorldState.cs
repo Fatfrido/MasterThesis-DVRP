@@ -199,6 +199,9 @@ namespace DVRP.Domain
                     lastRequest = request;
                 }
 
+                // Drive back to the depot
+                routeCost += CostMatrix[lastRequest, 0];
+
                 totalCost += routeCost;
             }
 
@@ -238,6 +241,34 @@ namespace DVRP.Domain
             }
 
             return solution;
+        }
+
+        /// <summary>
+        /// Checks if the given solution is better than the current one
+        /// </summary>
+        /// <param name="solution"></param>
+        /// <returns></returns>
+        public bool TrySetNewSolution(Solution solution) {
+            var cost = EvaluateSolution(solution);
+
+            // infeasible - should not happen
+            if (cost < 0)
+                return false;
+
+            // Handle first solution
+            if (Solution == null) {
+                Solution = solution;
+                return true;
+            }
+
+            var oldCost = EvaluateCurrentSolution(); // re-evaluate in case of changes
+
+            if((oldCost < 0 && cost >= 0) || (cost < oldCost)) {
+                Solution = solution;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

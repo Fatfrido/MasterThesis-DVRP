@@ -303,6 +303,9 @@ namespace DVRP.Optimizer.ACS
             for(int i = 1; i < solution.Route.Length; i++) {
                 // check if current request is a dummy depot
                 if(solution.IsDummyDepot(i)) {
+                    // return current vehicle back to depot
+                    cost += costMatrix[lastRequest, 0];
+
                     // change current vehicle
                     vehicle = solution.Route[i];
                     currCapacity = problem.VehicleCapacity[vehicle - 1]; // capacities start with 0
@@ -320,6 +323,9 @@ namespace DVRP.Optimizer.ACS
                     lastRequest = solution.Route[i];
                 }
             }
+
+            // return last vehicle to depot
+            cost += costMatrix[lastRequest, 0];
 
             solution.Cost = cost;
             return cost;

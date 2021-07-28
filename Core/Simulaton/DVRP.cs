@@ -224,7 +224,6 @@ namespace DVRP.Simulaton
             // TODO send result to optimizer
             Console.WriteLine(WorldState.GetFinalSolution());
             Console.WriteLine($"Final cost: {WorldState.EvaluateCurrentSolution()}");
-            // TODO get final cost
 
             Console.ReadKey();
         }
@@ -237,14 +236,13 @@ namespace DVRP.Simulaton
             var cost = WorldState.EvaluateSolution(solution);
             Console.WriteLine($"Received solution with cost: {cost}");
             Console.WriteLine(solution);
-            if (cost >= 0) { // might be 'worse' than current solution because of additional requests
-                WorldState.Solution = solution;
-
+            if (WorldState.TrySetNewSolution(solution)) {
                 // reset index of current solution
                 for (int i = 0; i < currentSolutionIdx.Length; i++) {
                     currentSolutionIdx[i] = 0;
                 }
 
+                // notify dispatcher
                 requestPipe.Put(-1);
             }
         }
