@@ -23,8 +23,6 @@ namespace DVRP.Simulaton
         private Store[] pipes;
         private Vehicle[] vehicles;
 
-        private int[] currentSolutionIdx;
-
         private SimulationQueue eventQueue;
         private Store requestPipe;
 
@@ -63,17 +61,26 @@ namespace DVRP.Simulaton
 
                 if(vehicle == -1) { // A new solution is available
                     for(int i = 0; i < vehicleCount; i++) { // for every vehicle
-                        if (WorldState.Solution.Data[i].Count() > 0 && vehicles[i].IsIdle) { // if there is a customer planned for the vehicle and it is not doing anything
-                            var nextRequest = WorldState.Solution.Data[i].First();
+                        if(vehicles[i].IsIdle) { // if there is a customer planned for the vehicle and it is not doing anything
+                            int nextRequest;
 
-                            if (WorldState.CommitRequest(i, nextRequest)) {
-                                pipes[i].Put(nextRequest); // assign the first customer on the route
-                                currentSolutionIdx[i]++;
+                            if(WorldState.TryCommitNextRequest(i, out nextRequest)) {
+                                pipes[i].Put(nextRequest);
                                 eventQueue.Publish(WorldState.ToProblem());
                             }
+
                         }
                     }
-                } else if(WorldState.Solution.Data[vehicle].Count() > currentSolutionIdx[vehicle]) {
+                } else {
+                    int nextRequest;
+
+                    if(WorldState.TryCommitNextRequest(vehicle, out nextRequest)) {
+                        pipes[vehicle].Put(nextRequest);
+                        eventQueue.Publish(WorldState.ToProblem());
+                    }
+                } 
+                
+                /*else if(WorldState.Solution.Data[vehicle].Count() > currentSolutionIdx[vehicle]) {
                     var nextRequest = WorldState.Solution.Data[vehicle].ElementAt<int>(currentSolutionIdx[vehicle]);
 
                     // Check if vehicle is not already at the next request (empty routes)
@@ -84,7 +91,7 @@ namespace DVRP.Simulaton
                             eventQueue.Publish(WorldState.ToProblem());
                         }
                     }
-                }
+                }*/
             }
         }
 
@@ -176,8 +183,6 @@ namespace DVRP.Simulaton
             var start = DateTime.Now;
             var env = new PseudoRealtimeSimulation(start, rseed);
 
-            currentSolutionIdx = new int[vehicleCount];
-
             // load problem instance
             depot = LoadDepotMock();
             dynamicRequests = LoadDynamicRequestsMock();
@@ -236,12 +241,8 @@ namespace DVRP.Simulaton
             var cost = WorldState.EvaluateSolution(solution);
             Console.WriteLine($"Received solution with cost: {cost}");
             Console.WriteLine(solution);
-            if (WorldState.TrySetNewSolution(solution)) {
-                // reset index of current solution
-                for (int i = 0; i < currentSolutionIdx.Length; i++) {
-                    currentSolutionIdx[i] = 0;
-                }
 
+            if (WorldState.TrySetNewSolution(solution)) {
                 // notify dispatcher
                 requestPipe.Put(-1);
             }

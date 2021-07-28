@@ -53,23 +53,29 @@ namespace DVRP.Domain
         /// <summary>
         /// The solution currently used for assigning requests to vehicles
         /// </summary>
-        public static Solution Solution {
+        public Solution Solution {
             get => _solution;
             set {
-                solutionMutex.WaitOne();
                 _solution = value;
-                solutionMutex.ReleaseMutex();
+                UpdateNextRequestQueues();
             }
         }
+        private Solution _solution;
 
-        private static Mutex solutionMutex = new Mutex(false);
-        private static Solution _solution;
+        // contains the next requests for each vehicle
+        private Queue<int>[] nextRequests;
 
         public WorldState(int vehicles, Request depot, Request[] knownRequests, int[] capacities) {
             History = new Dictionary<int, Request>();
             VehicleCount = vehicles;
             CurrentRequests = new int[vehicles];
             Depot = depot;
+            nextRequests = new Queue<int>[vehicles];
+
+            // Initialize queues
+            for(int i = 0; i < nextRequests.Length; i++) {
+                nextRequests[i] = new Queue<int>();
+            }
 
             // Initialize the location of every vehicle with the depot
             for(int i = 0; i < vehicles; i++) {
@@ -95,13 +101,50 @@ namespace DVRP.Domain
             CostMatrix = CalculateCostMatrix();
         }
 
+        public bool TryCommitNextRequest(int vehicle, out int nextRequest) {
+            nextRequest = GetNextRequest(vehicle);
+
+            // Check if there is a request available
+            if (nextRequest < 0)
+                return false;
+
+            return CommitRequest(vehicle, nextRequest);
+        }
+
+        /// <summary>
+        /// Returns the next request a vehicle must serve according to the currently accepted solution
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <returns>The id of the next request or -1 if there are no next requests the given vehicle</returns>
+        private int GetNextRequest(int vehicle) {
+            if(nextRequests[vehicle].Count < 1) { // nothing to do...
+                return -1;
+            }
+
+            return nextRequests[vehicle].Dequeue();
+        }
+
+        /// <summary>
+        /// Updates the request queues of each vehicle to represent the current solution
+        /// </summary>
+        private void UpdateNextRequestQueues() {
+            for(int vehicle = 0; vehicle < VehicleCount; vehicle++) {
+                // clear current queue
+                nextRequests[vehicle].Clear();
+
+                foreach(var request in Solution.Data[vehicle]) {
+                    nextRequests[vehicle].Enqueue(request);
+                }
+            }
+        }
+
         /// <summary>
         /// Commit a request to a vehicle. Cannot be undone
         /// </summary>
         /// <param name="vehicle"></param>
         /// <param name="request"></param>
         /// <returns>True if the commit was successful</returns>
-        public bool CommitRequest(int vehicle, int request) {
+        private bool CommitRequest(int vehicle, int request) {
             if(request != 0 && KnownRequests.ContainsKey(request)) { // dont mind the depot
                 CurrentRequests[vehicle] = request; // assign request to vehicle
                 FreeCapacities[vehicle] -= KnownRequests[request].Amount; // update available vehicle capacity
@@ -130,20 +173,6 @@ namespace DVRP.Domain
 
             var reducedCostMatrix = CreateReducedCostMatrix(mapping);
 
-            /*Console.WriteLine("-------------------------------");
-            Console.WriteLine($"Requests: {requests.Length}");
-            Console.WriteLine(">>> Cost Matrix");
-            var sb = new StringBuilder();
-
-            for(int i = 0; i < reducedCostMatrix.GetLength(0); i++) {    
-                for(int j = 0; j < reducedCostMatrix.GetLength(0); j++) {
-                    sb.Append($"{reducedCostMatrix[i,j]}\t");
-                }
-                sb.AppendLine();
-            }
-            sb.AppendLine();
-            Console.WriteLine(sb.ToString());*/
-
             return new Problem(
                 requests,
                 VehicleCount,
@@ -161,8 +190,7 @@ namespace DVRP.Domain
         /// <returns></returns>
         public double EvaluateSolution(Solution solution) {
             var totalCost = 0.0;
-
-            // TODO check if every request is serviced
+            var visited = new bool[KnownRequests.Count() + History.Count()];
 
             for (int vehicle = 0; vehicle < VehicleCount; vehicle++) {
                 var routeCost = 0.0;
@@ -175,6 +203,7 @@ namespace DVRP.Domain
                 foreach (var entry in History) {
                     if (entry.Value.Vehicle == vehicle) {
                         var request = entry.Value;
+                        visited[request.Id - 1] = true;
                         load += request.Amount;
 
                         // Violated capacity constraint
@@ -187,8 +216,14 @@ namespace DVRP.Domain
                 }
 
                 // Planned routes
-                foreach (var request in solution.Data[vehicle]) { // solution can be modified!!
-                    var req = GetRequest(request);
+                foreach (var request in solution.Data[vehicle]) {
+                    // solution is deprecated
+                    if(!KnownRequests.ContainsKey(request)) {
+                        return -1;
+                    }
+
+                    var req = KnownRequests[request];
+                    visited[request - 1] = true;
                     load += req.Amount;
 
                     // Violated capacity constraint
@@ -205,6 +240,10 @@ namespace DVRP.Domain
                 totalCost += routeCost;
             }
 
+            // Check if every request has been visited
+            if (visited.Contains(false))
+                return -1;
+
             return totalCost;
         }
 
@@ -213,11 +252,62 @@ namespace DVRP.Domain
         /// </summary>
         /// <returns></returns>
         public double EvaluateCurrentSolution() {
-            solutionMutex.WaitOne(); // solution must not be changed during execution
-            var result = EvaluateSolution(Solution);
-            solutionMutex.ReleaseMutex();
+            var totalCost = 0.0;
+            var visited = new bool[KnownRequests.Count() + History.Count()];
 
-            return result;
+            for (int vehicle = 0; vehicle < VehicleCount; vehicle++) {
+                var routeCost = 0.0;
+                var capacity = Capacities[vehicle];
+                var load = 0;
+                var lastRequest = 0; // start at depot
+                // TODO add green-vrp stuff here
+
+                // Finished requests
+                foreach (var entry in History) {
+                    if (entry.Value.Vehicle == vehicle) {
+                        var request = entry.Value;
+                        visited[request.Id - 1] = true;
+                        load += request.Amount;
+
+                        // Violated capacity constraint
+                        if (load > capacity)
+                            return -1;
+
+                        routeCost += CostMatrix[lastRequest, request.Id];
+                        lastRequest = request.Id;
+                    }
+                }
+
+                // Planned routes
+                foreach (var request in nextRequests[vehicle]) {
+                    // solution is deprecated
+                    if (!KnownRequests.ContainsKey(request)) {
+                        return -1;
+                    }
+
+                    var req = KnownRequests[request];
+                    visited[request - 1] = true;
+                    load += req.Amount;
+
+                    // Violated capacity constraint
+                    if (load > capacity)
+                        return -1;
+
+                    routeCost += CostMatrix[lastRequest, request];
+                    lastRequest = request;
+                }
+
+                // Drive back to the depot
+                routeCost += CostMatrix[lastRequest, 0];
+
+                totalCost += routeCost;
+            }
+
+            // Check if every request has been visited
+            if (visited.Contains(false))
+                return -1;
+
+            return totalCost;
         }
 
         public Solution GetFinalSolution() {

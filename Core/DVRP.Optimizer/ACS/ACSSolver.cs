@@ -24,7 +24,7 @@ namespace DVRP.Optimizer.ACS
 
             while (0 < computationTime) { // TODO computation time
                 for(int k = 0; k < antNumber; k++) {
-                    var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneEvaporation, pheromoneImportance);
+                    var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneEvaporation, pheromoneImportance, initialPheromoneValue);
                     //Console.WriteLine($"[Ant-{k}] FindSolution...");
                     var solution = ant.FindSolution();
 

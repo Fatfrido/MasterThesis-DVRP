@@ -10,13 +10,13 @@ namespace DVRP.Optimizer.ACS
     {
         private long[,] costMatrix;
         private double[,] pheromoneMatrix;
-        private double initialPheromoneValue;
         private double pheromoneImportance;
+        private double initialPheromoneValue;
         private Random random = new Random();
         private double pheromoneEvaporation;
         private Problem problem;
 
-        public Ant(Problem problem, double[,] pheromoneMatrix, long[,] costMatrix, double pheromoneEvaporation, double pheromoneImportance) {
+        public Ant(Problem problem, double[,] pheromoneMatrix, long[,] costMatrix, double pheromoneEvaporation, double pheromoneImportance, double initialPheromoneValue) {
             this.problem = problem;
             this.costMatrix = costMatrix;
             this.pheromoneEvaporation = pheromoneEvaporation;
