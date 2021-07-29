@@ -30,22 +30,14 @@ namespace DVRP.Optimizer.ACS
         /// <returns></returns>
         public Solution FindSolution() {
             var initialSolution = BuildInitialSolution(problem);
-            //Console.WriteLine("Build initial solution");
             initialSolution.Cost = Evaluate(initialSolution, problem);
 
             while(initialSolution.Cost < 0) { // solution must be feasible -> improve BuildInitialSolution to only return feasible solutions?
-                //Console.WriteLine("Build intial solution");
                 initialSolution = BuildInitialSolution(problem);
                 initialSolution.Cost = Evaluate(initialSolution, problem);
             }
-            //Console.WriteLine("Evaluating solution");
-            var bestSolution = LocalSearch(initialSolution, problem, 100);
 
-            for(int i = 1; i < bestSolution.Route.Length; i++) {
-                UpdateTrailLevel(bestSolution.Route[i - 1] - 1, bestSolution.Route[i] - 1);
-            }
-
-            return bestSolution;
+            return LocalSearch(initialSolution, problem, 100);
         }
 
         /// <summary>
@@ -105,6 +97,8 @@ namespace DVRP.Optimizer.ACS
                 nextRequest = SelectRandomCustomer(probabilities);
                 status[nextRequest] = true;
                 route.Add(nextRequest);
+
+                UpdateTrailLevel(currentRequestIdx, nextRequest);
 
                 // Check if a dummy depot has been selected
                 if(nextRequest < problem.VehicleCount) {

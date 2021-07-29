@@ -391,7 +391,7 @@ namespace DVRP.Domain
             for (int fromNode = 0; fromNode < requestNumber; fromNode++) {
                 for (int toNode = 0; toNode < requestNumber; toNode++) {
                     if (fromNode == toNode) {
-                        matrix[fromNode, toNode] = 1;
+                        matrix[fromNode, toNode] = 0;
                     } else {
                         var toRequest = GetRequest(toNode);
                         var fromRequest = GetRequest(fromNode);

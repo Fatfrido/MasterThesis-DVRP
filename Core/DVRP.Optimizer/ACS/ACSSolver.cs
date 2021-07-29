@@ -107,7 +107,11 @@ namespace DVRP.Optimizer.ACS
                         }
                     }
 
-                    matrix[i, j] = problem.CostMatrix[from, to];
+                    if(from == to) {
+                        matrix[i, j] = 1; // distance must not be 0
+                    } else {
+                        matrix[i, j] = problem.CostMatrix[from, to];
+                    }
                 }
             }
 
