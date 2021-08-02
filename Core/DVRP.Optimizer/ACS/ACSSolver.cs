@@ -51,9 +51,10 @@ namespace DVRP.Optimizer.ACS
 
                 computationTime--; // this is just temporary
             }
-            Console.WriteLine($"Best solution: {bestSolution.Cost}");
             var convertedSolution = bestSolution.ConvertToDomainSolution();
             convertedSolution.ApplyMapping(problem.Mapping);
+            Console.WriteLine("---------------------------------------------");
+            Console.WriteLine($"Best solution: {bestSolution.Cost}");
             Console.WriteLine(convertedSolution);
 
             return convertedSolution;
@@ -105,10 +106,12 @@ namespace DVRP.Optimizer.ACS
                         } else { // request
                             to = j - requestOffset + 1; // mind depot in original matrix
                         }
+                    } else {
+                        to = 0;
                     }
 
                     if(from == to) {
-                        matrix[i, j] = 1; // distance must not be 0
+                        matrix[i, j] = 0;
                     } else {
                         matrix[i, j] = problem.CostMatrix[from, to];
                     }

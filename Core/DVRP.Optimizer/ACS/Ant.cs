@@ -81,7 +81,12 @@ namespace DVRP.Optimizer.ACS
                 var attractiveness = new Dictionary<int, double>(options.Count());
 
                 foreach (var option in options) {
-                    var generalAttractiveness = 1.0 / costMatrix[currentRequestIdx + 1, option + 1]; // cost matrix includes the real depot at index 0
+                    var cost = costMatrix[currentRequestIdx + 1, option + 1];
+
+                    if (cost <= 0) // make sure to not divide by 0
+                        cost = 10;
+
+                    var generalAttractiveness = 1.0 / cost; // cost matrix includes the real depot at index 0
                     var pheromoneAttractiveness = Math.Pow(pheromoneMatrix[currentRequestIdx, option], pheromoneImportance);
                     attractiveness[option] = generalAttractiveness * pheromoneAttractiveness;
                     attractivenessSum += attractiveness[option];
@@ -196,9 +201,11 @@ namespace DVRP.Optimizer.ACS
 
             // handle first dummy depot
             var vehicle = solution.Route[0];
-            var currCapacity = problem.VehicleCapacity[0];
+            var currCapacity = problem.VehicleCapacity[vehicle - 1];
             var cost = 0.0;
             var lastRequest = solution.Route[0];
+            var emissions = 0.0;
+            var visited = new bool[problem.Requests.Length];
 
             for(int i = 1; i < solution.Route.Length; i++) {
                 // check if current request is a dummy depot
@@ -220,12 +227,14 @@ namespace DVRP.Optimizer.ACS
                     }
 
                     cost += costMatrix[lastRequest, solution.Route[i]]; // cost matrix has depot at index 0
+                    emissions += costMatrix[lastRequest, solution.Route[i]] * problem.Emissions[vehicle - 1];
                     lastRequest = solution.Route[i];
                 }
             }
 
             // return last vehicle to depot
             cost += costMatrix[lastRequest, 0];
+            //cost += emissions;
 
             solution.Cost = cost;
             return cost;

@@ -78,20 +78,7 @@ namespace DVRP.Simulaton
                         pipes[vehicle].Put(nextRequest);
                         eventQueue.Publish(WorldState.ToProblem());
                     }
-                } 
-                
-                /*else if(WorldState.Solution.Data[vehicle].Count() > currentSolutionIdx[vehicle]) {
-                    var nextRequest = WorldState.Solution.Data[vehicle].ElementAt<int>(currentSolutionIdx[vehicle]);
-
-                    // Check if vehicle is not already at the next request (empty routes)
-                    if(WorldState.CurrentRequests[vehicle] != nextRequest) {
-                        if(WorldState.CommitRequest(vehicle, nextRequest)) {
-                            pipes[vehicle].Put(nextRequest);
-                            currentSolutionIdx[vehicle]++;
-                            eventQueue.Publish(WorldState.ToProblem());
-                        }
-                    }
-                }*/
+                }
             }
         }
 
@@ -208,10 +195,7 @@ namespace DVRP.Simulaton
                 }
             };
 
-            WorldState = new WorldState(vehicleCount,
-                depot, LoadAdvancedRequestsMock(),
-                Enumerable.Repeat(vehicleCapacity,
-                vehicleCount).ToArray()); // TODO: different capacities
+            WorldState = new WorldState(vehicleCount, depot, LoadAdvancedRequestsMock(), LoadVehicleTypes());
 
             env.Process(DynamicRequestHandler(env));
 
@@ -273,6 +257,13 @@ namespace DVRP.Simulaton
             return new Dictionary<int, Domain.Request>() {
                 { 1, new Domain.Request(10, 3, 5, 7) },
                 { 4, new Domain.Request(40, 23, 70, 8) }
+            };
+        }
+
+        private VehicleType[] LoadVehicleTypes() {
+            return new VehicleType[] {
+                new VehicleType(100, 3, 147),
+                new VehicleType(70, 2, 121)
             };
         }
     }

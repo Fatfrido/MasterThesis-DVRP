@@ -35,6 +35,8 @@ namespace DVRP.Domain
         /// </summary>
         public int[] FreeCapacities { get; private set; }
 
+        public int[] Emissions { get; private set; }
+
         /// <summary>
         /// The start end endpoint of each vehicle
         /// </summary>
@@ -65,7 +67,7 @@ namespace DVRP.Domain
         // contains the next requests for each vehicle
         private Queue<int>[] nextRequests;
 
-        public WorldState(int vehicles, Request depot, Request[] knownRequests, int[] capacities) {
+        public WorldState(int vehicles, Request depot, Request[] knownRequests, VehicleType[] vehicleTypes) {
             History = new Dictionary<int, Request>();
             VehicleCount = vehicles;
             CurrentRequests = new int[vehicles];
@@ -88,8 +90,21 @@ namespace DVRP.Domain
             }
 
             CostMatrix = CalculateCostMatrix();
-            Capacities = capacities;
-            FreeCapacities = capacities.ToArray();
+
+            // Handle vehicles
+            var tempCapacities = new List<int>();
+            var tempEmissions = new List<int>();
+
+            foreach(var vehicleType in vehicleTypes) {
+                for(int i = 0; i < vehicleType.VehicleCount; i++) {
+                    tempCapacities.Add(vehicleType.Capacity);
+                    tempEmissions.Add(vehicleType.Emissions);
+                }
+            }
+
+            Capacities = tempCapacities.ToArray();
+            Emissions = tempEmissions.ToArray();
+            FreeCapacities = tempCapacities.ToArray();
         }
 
         /// <summary>
@@ -177,6 +192,7 @@ namespace DVRP.Domain
                 requests,
                 VehicleCount,
                 FreeCapacities,
+                Emissions,
                 start,
                 reducedCostMatrix,
                 mapping
@@ -190,6 +206,7 @@ namespace DVRP.Domain
         /// <returns></returns>
         public double EvaluateSolution(Solution solution) {
             var totalCost = 0.0;
+            var emissions = 0.0;
             var visited = new bool[KnownRequests.Count() + History.Count()];
 
             for (int vehicle = 0; vehicle < VehicleCount; vehicle++) {
@@ -197,7 +214,6 @@ namespace DVRP.Domain
                 var capacity = Capacities[vehicle];
                 var load = 0;
                 var lastRequest = 0; // start at depot
-                // TODO add green-vrp stuff here
 
                 // Finished requests
                 foreach (var entry in History) {
@@ -211,6 +227,7 @@ namespace DVRP.Domain
                             return -1;
 
                         routeCost += CostMatrix[lastRequest, request.Id];
+                        emissions += CostMatrix[lastRequest, request.Id] * Emissions[vehicle];
                         lastRequest = request.Id;
                     }
                 }
@@ -231,11 +248,13 @@ namespace DVRP.Domain
                         return -1;
 
                     routeCost += CostMatrix[lastRequest, request];
+                    emissions += CostMatrix[lastRequest, request] * Emissions[vehicle];
                     lastRequest = request;
                 }
 
                 // Drive back to the depot
                 routeCost += CostMatrix[lastRequest, 0];
+                emissions += CostMatrix[lastRequest, 0] * Emissions[vehicle];
 
                 totalCost += routeCost;
             }
@@ -244,7 +263,7 @@ namespace DVRP.Domain
             if (visited.Contains(false))
                 return -1;
 
-            return totalCost;
+            return totalCost;// + emissions;
         }
 
         /// <summary>
@@ -254,6 +273,7 @@ namespace DVRP.Domain
         public double EvaluateCurrentSolution() {
             var totalCost = 0.0;
             var visited = new bool[KnownRequests.Count() + History.Count()];
+            var emissions = 0.0;
 
             for (int vehicle = 0; vehicle < VehicleCount; vehicle++) {
                 var routeCost = 0.0;
@@ -274,6 +294,7 @@ namespace DVRP.Domain
                             return -1;
 
                         routeCost += CostMatrix[lastRequest, request.Id];
+                        emissions += CostMatrix[lastRequest, request.Id] * Emissions[vehicle];
                         lastRequest = request.Id;
                     }
                 }
@@ -294,11 +315,13 @@ namespace DVRP.Domain
                         return -1;
 
                     routeCost += CostMatrix[lastRequest, request];
+                    emissions += CostMatrix[lastRequest, request] * Emissions[vehicle];
                     lastRequest = request;
                 }
 
                 // Drive back to the depot
                 routeCost += CostMatrix[lastRequest, 0];
+                emissions += CostMatrix[lastRequest, 0] * Emissions[vehicle];
 
                 totalCost += routeCost;
             }
@@ -307,7 +330,7 @@ namespace DVRP.Domain
             if (visited.Contains(false))
                 return -1;
 
-            return totalCost;
+            return totalCost;// + emissions;
         }
 
         public Solution GetFinalSolution() {
