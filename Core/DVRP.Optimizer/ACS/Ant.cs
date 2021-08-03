@@ -22,6 +22,7 @@ namespace DVRP.Optimizer.ACS
             this.pheromoneEvaporation = pheromoneEvaporation;
             this.pheromoneImportance = pheromoneImportance;
             this.pheromoneMatrix = pheromoneMatrix;
+            this.initialPheromoneValue = initialPheromoneValue;
         }
 
         /// <summary>
@@ -103,7 +104,7 @@ namespace DVRP.Optimizer.ACS
                 status[nextRequest] = true;
                 route.Add(nextRequest);
 
-                UpdateTrailLevel(currentRequestIdx, nextRequest);
+                UpdateTrailLevel(currentRequestIdx, nextRequest, problem);
 
                 // Check if a dummy depot has been selected
                 if(nextRequest < problem.VehicleCount) {
@@ -182,8 +183,11 @@ namespace DVRP.Optimizer.ACS
         /// </summary>
         /// <param name="from"></param>
         /// <param name="to"></param>
-        private void UpdateTrailLevel(int from, int to) {
-            pheromoneMatrix[from, to] = ((1 - pheromoneEvaporation) * pheromoneMatrix[from, to]) + 
+        private void UpdateTrailLevel(int from, int to, Problem problem) {
+            var fromPheromone = ACSSolver.ToPheromoneIndex(from, problem);
+            var toPheromone = ACSSolver.ToPheromoneIndex(to, problem);
+
+            pheromoneMatrix[fromPheromone, toPheromone] = ((1 - pheromoneEvaporation) * pheromoneMatrix[fromPheromone, toPheromone]) + 
                 (pheromoneEvaporation * initialPheromoneValue);
         }
 
