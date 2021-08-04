@@ -50,31 +50,35 @@ namespace DVRP.Simulaton
 
                 var vehicle = (int) get.Value;
 
+                // Wait for initial solution
                 while (WorldState.Solution == null) {
-                    //env.Log($"Waiting for initial solution");
                     Thread.Sleep(100);
                 }
 
                 if(vehicle == -1) { // A new solution is available
                     for(int i = 0; i < vehicleCount; i++) { // for every vehicle
                         if(vehicles[i].IsIdle) { // if there is a customer planned for the vehicle and it is not doing anything
-                            int nextRequest;
-
-                            if(WorldState.TryCommitNextRequest(i, out nextRequest)) {
-                                pipes[i].Put(nextRequest);
-                                PublishProblem(env, WorldState.ToProblem());
-                            }
-
+                            ApplyNextRequest(i, pipes[i], env);
                         }
                     }
                 } else {
-                    int nextRequest;
-
-                    if(WorldState.TryCommitNextRequest(vehicle, out nextRequest)) {
-                        pipes[vehicle].Put(nextRequest);
-                        PublishProblem(env, WorldState.ToProblem());
-                    }
+                    ApplyNextRequest(vehicle, pipes[vehicle], env);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Assigns the next request to a vehicle if possible and publishes a new problem
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <param name="pipe"></param>
+        /// <param name="env"></param>
+        private void ApplyNextRequest(int vehicle, Store pipe, PseudoRealtimeSimulation env) {
+            int nextRequest;
+
+            if (WorldState.TryCommitNextRequest(vehicle, out nextRequest)) {
+                pipe.Put(nextRequest);
+                PublishProblem(env, WorldState.ToProblem());
             }
         }
 
