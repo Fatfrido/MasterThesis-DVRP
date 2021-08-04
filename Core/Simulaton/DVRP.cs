@@ -30,18 +30,14 @@ namespace DVRP.Simulaton
 
         private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
             env.Log("Publish initial problem");
-            realTimeEnforcer++;
-            env.SetRealtime();
             Thread.Sleep(500); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
-            eventQueue.Publish(WorldState.ToProblem());
+            PublishProblem(env, WorldState.ToProblem());
 
             foreach (var request in dynamicRequests) {
                 yield return env.Timeout(TimeSpan.FromSeconds(request.Key));
-                realTimeEnforcer++;
-                env.SetRealtime();
                 Console.WriteLine(">>> New Request <<<");
                 WorldState.AddRequest(request.Value);
-                eventQueue.Publish(WorldState.ToProblem());
+                PublishProblem(env, WorldState.ToProblem());
             }
         }
 
@@ -66,7 +62,7 @@ namespace DVRP.Simulaton
 
                             if(WorldState.TryCommitNextRequest(i, out nextRequest)) {
                                 pipes[i].Put(nextRequest);
-                                eventQueue.Publish(WorldState.ToProblem());
+                                PublishProblem(env, WorldState.ToProblem());
                             }
 
                         }
@@ -76,7 +72,7 @@ namespace DVRP.Simulaton
 
                     if(WorldState.TryCommitNextRequest(vehicle, out nextRequest)) {
                         pipes[vehicle].Put(nextRequest);
-                        eventQueue.Publish(WorldState.ToProblem());
+                        PublishProblem(env, WorldState.ToProblem());
                     }
                 }
             }
@@ -182,7 +178,9 @@ namespace DVRP.Simulaton
                     case "decision":
                         HandleDecision(args.Message);
                         realTimeEnforcer--;
-                        if(realTimeEnforcer == 0) {
+
+                        // If there is no unfinished problem left
+                        if(realTimeEnforcer <= 0) {
                             env.SetVirtualtime();
                         }
                         
@@ -218,7 +216,6 @@ namespace DVRP.Simulaton
         }
 
         private void HandleDecision(string message) {
-            realTimeEnforcer--;
             var solution = JsonSerializer.Deserialize<Solution>(message);
 
             // Check if the solution is still feasible for the current world state
@@ -236,6 +233,12 @@ namespace DVRP.Simulaton
             /*var score = CalcScore(JsonSerializer.Deserialize<Solution>(message));
             Console.WriteLine($"Publish score: {score}");
             eventQueue.Publish(score);*/
+        }
+
+        private void PublishProblem(PseudoRealtimeSimulation env, Problem problem) {
+            realTimeEnforcer++;
+            env.SetRealtime();
+            eventQueue.Publish(problem);
         }
 
         private Domain.Request LoadDepotMock() {
