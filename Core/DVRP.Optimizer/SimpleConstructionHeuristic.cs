@@ -6,9 +6,9 @@ using System.Threading;
 
 namespace DVRP.Optimizer
 {
-    public class SimpleConstructionHeuristic
+    public class SimpleConstructionHeuristic : IPeriodicOptimizer
     {
-        public static Solution Solve(Problem problem) {
+        public Solution Solve(Problem problem) {
             var solution = new Solution(problem.VehicleCount);
             int currentVehicle = 0;
             int currentVehicleCapacity = problem.VehicleCapacity[currentVehicle];

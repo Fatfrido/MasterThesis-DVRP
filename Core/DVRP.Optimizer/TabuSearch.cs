@@ -9,9 +9,9 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace DVRP.Optimizer
 {
-    public class TabuSearch
+    public class TabuSearch : IPeriodicOptimizer
     {
-        public static Solution Solve(Problem problem) {
+        public Solution Solve(Problem problem) {
             // Create routing index manager
             RoutingIndexManager manager = 
                 new RoutingIndexManager(problem.CostMatrix.GetLength(0), problem.VehicleCount, problem.Start, 
@@ -66,7 +66,7 @@ namespace DVRP.Optimizer
         /// <param name="manager"></param>
         /// <param name="routing"></param>
         /// <returns></returns>
-        private static Solution ConvertToSolution(in Assignment assignment, Problem problem, in RoutingIndexManager manager, in RoutingModel routing) {
+        private Solution ConvertToSolution(in Assignment assignment, Problem problem, in RoutingIndexManager manager, in RoutingModel routing) {
             var solution = new Solution(problem.VehicleCount);
 
             for(int i = 0; i < problem.VehicleCount; i++) {

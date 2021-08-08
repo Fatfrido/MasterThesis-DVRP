@@ -6,11 +6,24 @@ using System.Text;
 
 namespace DVRP.Optimizer.ACS
 {
-    public class ACSSolver
+    public class ACSSolver : IPeriodicOptimizer
     {
-        private static double[,] pheromoneMatrix;
+        private double[,] pheromoneMatrix;
+        private int computationTime;
+        private int antNumber;
+        private double pheromoneEvaporation;
+        private double pheromoneImportance;
+        private double initialPheromoneValue;
 
-        public static DVRP.Domain.Solution Solve(Problem problem, int computationTime, int antNumber, double pheromoneEvaporation = 0.5, double pheromoneImportance = 0.5, double initialPheromoneValue = 0.2) {
+        public ACSSolver(int computationTime, int antNumber, double pheromoneEvaporation, double pheromoneImportance, double initialPheromoneValue) {
+            this.computationTime = computationTime;
+            this.antNumber = antNumber;
+            this.pheromoneEvaporation = pheromoneEvaporation;
+            this.pheromoneImportance = pheromoneImportance;
+            this.initialPheromoneValue = initialPheromoneValue;
+        }
+
+        public Domain.Solution Solve(Problem problem) {
             // init pheromone level
             if(pheromoneMatrix == null) {
                 // matrix needs to include dummy depots for each vehicle
@@ -22,8 +35,9 @@ namespace DVRP.Optimizer.ACS
 
             Solution bestSolution = null;
             var costMatrix = TransformDistanceMatrix(problem);
+            var remainingComputationTime = computationTime;
 
-            while (0 < computationTime) { // TODO computation time
+            while (0 < remainingComputationTime) { // TODO computation time
                 for(int k = 0; k < antNumber; k++) {
                     var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneEvaporation, pheromoneImportance, initialPheromoneValue);
                     //Console.WriteLine($"[Ant-{k}] FindSolution...");
@@ -53,7 +67,7 @@ namespace DVRP.Optimizer.ACS
                         pheromoneEvaporation / bestSolution.Cost;
                 }
 
-                computationTime--; // this is just temporary
+                remainingComputationTime--; // this is just temporary
             }
             var convertedSolution = bestSolution.ConvertToDomainSolution();
             convertedSolution.ApplyMapping(problem.Mapping);
@@ -70,7 +84,7 @@ namespace DVRP.Optimizer.ACS
         /// <param name="locationNumber"></param>
         /// <param name="initialPheromoneValue"></param>
         /// <returns></returns>
-        private static double[,] InitPheromoneMatrix(Problem problem, double initialPheromoneValue) {
+        private double[,] InitPheromoneMatrix(Problem problem, double initialPheromoneValue) {
             var length = problem.VehicleCount + problem.Requests.Length + 1; // depot
             var matrix = new double[length, length];
 
@@ -107,7 +121,7 @@ namespace DVRP.Optimizer.ACS
         /// </summary>
         /// <param name="problem"></param>
         /// <returns></returns>
-        private static long[,] TransformDistanceMatrix(Problem problem) {
+        private long[,] TransformDistanceMatrix(Problem problem) {
             var length = problem.VehicleCount + problem.Requests.Length + 1; // mind the depot
             var matrix = new long[length, length];
 
@@ -156,7 +170,7 @@ namespace DVRP.Optimizer.ACS
         /// <param name="pheromoneMatrix"></param>
         /// <param name="initialPheromoneValue"></param>
         /// <returns></returns>
-        private static double[,] TransformPheromoneMatrix(Problem problem, double[,] pheromoneMatrix, double initialPheromoneValue) {
+        private double[,] TransformPheromoneMatrix(Problem problem, double[,] pheromoneMatrix, double initialPheromoneValue) {
             var currentLength = pheromoneMatrix.GetLength(0);
 
             // Check if there is a new request (unknown id)
