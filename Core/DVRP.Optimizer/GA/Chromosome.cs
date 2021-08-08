@@ -19,7 +19,7 @@ namespace DVRP.Optimizer.GA
         /// </summary>
         /// <param name="n">Length of the permutation</param>
         public Chromosome(int n) {
-            Data = Enumerable.Range(1, n).ToArray().Shuffle(); // Requests start at 1 since 0 is the depot
+            Data = Enumerable.Range(1, n).ToArray().Shuffle();
         }
 
         /// <summary>
@@ -94,10 +94,10 @@ namespace DVRP.Optimizer.GA
             for(int i = from; i < to; i++) {
                 if (!done.TryGetValue(other.Data[i], out var b)) { // Not part of the child => add
                     var v = Data[i];
-                    var index = Array.IndexOf(other.Data, v);
+                    var index = i;
 
                     // Find index to insert value from second parent
-                    while(from <= index && index <= to) {
+                    while(from <= index && index < to) {
                         v = Data[index];
                         index = Array.IndexOf(other.Data, v);
                     }
@@ -112,7 +112,7 @@ namespace DVRP.Optimizer.GA
         }
 
         public IEnumerator<int> GetEnumerator() {
-            return (IEnumerator<int>) Data.GetEnumerator();
+            return Data.Cast<int>().GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator() {

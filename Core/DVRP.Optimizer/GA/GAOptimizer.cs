@@ -6,7 +6,7 @@ using System.Text;
 
 namespace DVRP.Optimizer.GA
 {
-    public class GAOptimizer : IContinuousOptimizer
+    public class GAOptimizer : IPeriodicOptimizer //IContinuousOptimizer
     {
         public event EventHandler<Solution> NewBestSolutionFound;
 
@@ -18,7 +18,8 @@ namespace DVRP.Optimizer.GA
         private bool stop = false;
 
         public GAOptimizer(int populationSize, int k) {
-            this.populationSize = populationSize; // TODO: variable??
+            this.populationSize = populationSize;
+            this.k = k;
         }
 
         public void HandleNewProblem(Problem problem) {
@@ -32,7 +33,7 @@ namespace DVRP.Optimizer.GA
             stop = true;
         }
 
-        private void Run(int initialCalculationTime, int elites, double mutationProbability) {
+        private Solution Run(int initialCalculationTime, int elites, double mutationProbability) {
             // Make sure the problem is not null
             if(problem == null) {
                 throw new ArgumentNullException("Problem must not be null");
@@ -51,6 +52,7 @@ namespace DVRP.Optimizer.GA
                 individual.CalculateFitness(problem);
             }
 
+            int count = 0;
             while(!stop) {
                 var childPopulation = new List<Individual>();
 
@@ -76,12 +78,22 @@ namespace DVRP.Optimizer.GA
                 var newGeneration = childPopulation.OrderByDescending(x => x.Fitness).ToArray();
 
                 // Elitism
-                for(int i = 0; i < elites; i++) {
+                for (int i = 0; i < elites; i++) {
                     newGeneration[newGeneration.Length - 1 - i] = population[i];
                 }
 
                 population = newGeneration;
+
+                count++;
+                if(count > 50) {
+                    stop = true;
+                }
             }
+
+            population = population.OrderByDescending(x => x.Fitness).ToArray();
+            var res = population[0].ToSolution(problem);
+
+            return res;
         }
 
         /// <summary>
@@ -120,6 +132,11 @@ namespace DVRP.Optimizer.GA
             }
 
             return population;
+        }
+
+        public Solution Solve(Problem problem) {
+            this.problem = problem;
+            return Run(10, 1, 0.8);
         }
     }
 }

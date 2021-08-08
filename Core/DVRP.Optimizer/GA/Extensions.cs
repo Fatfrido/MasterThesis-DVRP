@@ -15,10 +15,10 @@ namespace DVRP.Optimizer.GA
         /// <param name="array"></param>
         /// <returns></returns>
         public static T[] Shuffle<T>(this T[] array) {
-            int n = array.Length;
+            var n = array.Length;
 
-            for(int i = 0; i < (n - 1); i++) {
-                int r = i + random.Next(n - 1);
+            for(int i = 0; i < n - 2; i++) {
+                var r = random.Next(i, n - 1);
                 var temp = array[r];
                 array[r] = array[i];
                 array[i] = temp;

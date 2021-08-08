@@ -1,6 +1,7 @@
 ﻿using DVRP.Communication;
 using DVRP.Domain;
 using DVRP.Optimizer.ACS;
+using DVRP.Optimizer.GA;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -24,8 +25,9 @@ namespace DVRP.Optimizer
             //Optimizer = new SimpleConstructionHeuristic();
             //Optimizer = new TabuSearch();
             //PeriodicOptimizer = new ACSSolver(100, 3, 0.5, 0.5, 0.1);
-            ContinuousOptimizer = new GAOptimizer();
-            ContinuousOptimizer.NewBestSolutionFound += HandleNewBestSolution;
+            PeriodicOptimizer = new GAOptimizer(4, 2);
+            //ContinuousOptimizer = new GAOptimizer();
+            //ContinuousOptimizer.NewBestSolutionFound += HandleNewBestSolution;
 
             queue = new OptimizerQueue("tcp://*:12346", "tcp://localhost:12345");
             queue.OnEvent += (sender, args) => {
@@ -57,9 +59,9 @@ namespace DVRP.Optimizer
 
         private static void HandleEvent(string message) {
             var problem = JsonConvert.DeserializeObject<Problem>(message);
-            ContinuousOptimizer.HandleNewProblem(problem);
+            //ContinuousOptimizer.HandleNewProblem(problem);
+            queue.Publish(PeriodicOptimizer.Solve(problem));
 
-            //queue.Publish(PeriodicOptimizer.Solve(problem));
             //queue.Publish(TabuSearch.Solve(problem));
             //queue.Publish(ACSSolver.Solve(problem, 100, 3));
         }

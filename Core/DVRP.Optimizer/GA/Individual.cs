@@ -1,6 +1,7 @@
 ﻿using DVRP.Domain;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace DVRP.Optimizer.GA
@@ -14,7 +15,7 @@ namespace DVRP.Optimizer.GA
         public double Fitness { get; private set; }
 
         public Individual(int[] requests, int vehicleCount) {
-            RouteChromosome = new Chromosome(requests);
+            RouteChromosome = new Chromosome(requests.ToArray().Shuffle());
             VehicleChromosome = new Chromosome(vehicleCount);
         }
 
@@ -68,13 +69,14 @@ namespace DVRP.Optimizer.GA
 
             // Create inverse request mapping (id => index)
             var idToIndexMapping = new Dictionary<int, int>();
+            idToIndexMapping.Add(0, 0); // depot
             for (int j = 0; j < problem.Requests.Length; j++) {
-                idToIndexMapping.Add(problem.Requests[i].Id, i);
+                idToIndexMapping.Add(problem.Requests[j].Id, j);
             }
 
             var vehicle = VehicleChromosome[i];
             var capacity = problem.VehicleCapacity[vehicle - 1];
-            var lastRequest = idToIndexMapping[problem.Start[vehicle]];
+            var lastRequest = problem.Mapping[problem.Start[vehicle - 1]];
 
             foreach(var request in RouteChromosome) {
                 // Check capacity constraint
@@ -88,17 +90,48 @@ namespace DVRP.Optimizer.GA
 
                     vehicle = VehicleChromosome[i];
                     capacity = problem.VehicleCapacity[vehicle - 1];
-                    lastRequest = idToIndexMapping[problem.Start[vehicle]];
+                    lastRequest = problem.Mapping[problem.Start[vehicle - 1]];
                 }
 
                 capacity -= demand;
-                cost += problem.CostMatrix[lastRequest, request];
+                cost += problem.GetCost(lastRequest, request);
             }
 
             var fitness = 1 / cost;
             Fitness = fitness;
 
             return fitness;
+        }
+
+        public Solution ToSolution(Problem problem) {
+            var solution = new Solution(VehicleChromosome.Length);
+            var vehicleIndex = 0;
+            var vehicle = VehicleChromosome[vehicleIndex];
+            var capacity = problem.VehicleCapacity[vehicle - 1];
+            var route = new List<int>();
+
+            foreach(var request in RouteChromosome) {
+                var demand = problem.Requests.Where(x => x.Id == request).First().Amount;
+                capacity -= demand;
+
+                while(capacity < 0) {
+                    // Save current route
+                    solution.AddRoute(vehicle, route.ToArray());
+                    route.Clear();
+
+                    // Next vehicle
+                    vehicleIndex++;
+                    vehicle = VehicleChromosome[vehicleIndex];
+                    capacity = problem.VehicleCapacity[vehicle - 1];
+                    capacity -= demand;
+                }
+
+                route.Add(request);
+            }
+
+            solution.AddRoute(vehicle, route.ToArray());
+
+            return solution;
         }
     }
 }

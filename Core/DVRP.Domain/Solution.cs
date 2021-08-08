@@ -13,6 +13,9 @@ namespace DVRP.Domain
 
         public Solution(int vehicleNumber) {
             Data = new int[vehicleNumber][];
+            for(int i = 0; i < vehicleNumber; i++) {
+                Data[i] = new int[0];
+            }
         }
 
         public void AddRoute(int vehicle, int[] route) {
