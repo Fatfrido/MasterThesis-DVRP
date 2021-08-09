@@ -16,17 +16,11 @@ namespace DVRP.Domain
         /// </summary>
         public int VehicleCount { get; set; }
 
-        /// <summary>
-        /// Emitted C02 per distance unit
-        /// </summary>
-        public int Emissions { get; set; }
-
         public VehicleType() { }
 
-        public VehicleType(int capacity, int vehicleCount, int emissions) {
+        public VehicleType(int capacity, int vehicleCount) {
             Capacity = capacity;
             VehicleCount = vehicleCount;
-            Emissions = emissions;
         }
     }
 }

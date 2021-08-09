@@ -3,50 +3,64 @@ using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
 using System;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace DVRP.Communication
 {
-    public class SimulationQueue
+    public class SimulationQueue : ISimulationQueue
     {
         private PublisherSocket pubSocket;
         private SubscriberSocket subSocket;
 
-        private string publishChannel = "event";
-        private string subscribeChannel = "decision";
-        private string scoreChannel = "score";
-
-        public event EventHandler<EventArgs> OnEvent = delegate { };
+        public event EventHandler<bool> StartSimulationReceived = delegate { };
+        public event EventHandler<Solution> SolutionReceived = delegate { };
 
         public SimulationQueue(string pubConnection, string subConnection) {
             pubSocket = new PublisherSocket(pubConnection);
 
             subSocket = new SubscriberSocket(subConnection);
-            subSocket.Subscribe(subscribeChannel);
-            subSocket.Subscribe(scoreChannel);
+            subSocket.Subscribe(Channel.Solution);
+            subSocket.Subscribe(Channel.Start);
+
             HandleEventIn();
         }
 
         public void Publish(Problem problem) {
-            Console.WriteLine(">>>>>>>>>");
+            Console.WriteLine(">>>>>>>>> problem");
             var json = JsonConvert.SerializeObject(problem);
-            pubSocket.SendMoreFrame(publishChannel).SendFrame(json);
+            pubSocket.SendMoreFrame(Channel.Problem).SendFrame(json);
         }
 
-        public void Publish(double score) {
-            pubSocket.SendMoreFrame(scoreChannel).SendFrame(score.ToString());
+        public void Publish(SimulationResult result) {
+            Console.WriteLine(">>>>>>>>> result");
+            var json = JsonConvert.SerializeObject(result);
+            pubSocket.SendMoreFrame(Channel.SimulationResult).SendFrame(json);
         }
 
+        /// <summary>
+        /// Handles incoming events on the queue
+        /// </summary>
         private void HandleEventIn() {
             var task = new Task(() => {
                 while(true) {
                     var topic = subSocket.ReceiveFrameString();
                     var message = subSocket.ReceiveFrameString();
+                    Console.WriteLine($"received message: {topic}");
 
-                    if(OnEvent != null) {
-                        Console.WriteLine("<<<<<<<<<");
-                        OnEvent(this, new EventArgs(topic, message));
+                    switch (topic) {
+                        case Channel.Solution:
+                            Console.WriteLine("<<<<<<<<<< solution");
+                            var solution = JsonConvert.DeserializeObject<Solution>(message);
+                            SolutionReceived(this, solution);
+                            break;
+                        case Channel.Start:
+                            Console.WriteLine("<<<<<<<<<< start");
+                            if (bool.TryParse(message, out var allowFastSimulation)) {
+                                StartSimulationReceived(this, allowFastSimulation);
+                            } else {
+                                throw new ArgumentException($"'{message}' cannot be converted to bool");
+                            }
+                            break;
                     }
                 }
             });

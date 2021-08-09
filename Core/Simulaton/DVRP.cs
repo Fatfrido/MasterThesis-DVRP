@@ -5,7 +5,6 @@ using DVRP.Communication;
 using DVRP.Domain;
 using System.Linq;
 using System.Threading;
-using System.Text.Json;
 
 namespace DVRP.Simulaton
 {
@@ -14,23 +13,30 @@ namespace DVRP.Simulaton
         private Dictionary<int, Domain.Request> dynamicRequests;
 
         private int vehicleCount = 5;
-        private int vehicleCapacity = 100;
         private TimeSpan serviceTime = TimeSpan.FromMinutes(5);
         private Domain.Request depot;
+        private ProblemInstance problemInstance;
 
         private int realTimeEnforcer = 0;
+        private bool allowFastSimulation;
 
         private Store[] pipes;
         private Vehicle[] vehicles;
 
-        private SimulationQueue eventQueue;
+        private ISimulationQueue eventQueue;
         private Store requestPipe;
+        private PseudoRealtimeSimulation env;
 
-        public static WorldState WorldState { get; set; }
+        public WorldState WorldState { get; set; }
+
+        public DVRP(ISimulationQueue queue, ProblemInstance dvrp) {
+            eventQueue = queue;
+            problemInstance = dvrp;
+        }
 
         private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
             env.Log("Publish initial problem");
-            Thread.Sleep(500); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
+            //Thread.Sleep(500); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
             PublishProblem(env, WorldState.ToProblem());
 
             foreach (var request in dynamicRequests) {
@@ -112,12 +118,11 @@ namespace DVRP.Simulaton
             /// <param name="pipe">Contains the next order</param>
             /// <param name="id">Unique identifier</param>
             /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
-            public Vehicle(PseudoRealtimeSimulation env, int capacity, Store pipe, int id, Store dispatcherRequest, Domain.Request depot) : base(env) {
-                Capacity = capacity;
+            public Vehicle(PseudoRealtimeSimulation env, Store pipe, int id, Store dispatcherRequest, WorldState worldState, int startIdx = 0) : base(env) {
                 Id = id;
-                CurrentRequest = depot.Id; // start at the depot
+                CurrentRequest = startIdx; // start at the depot
 
-                env.Process(Working(env, pipe, dispatcherRequest));
+                env.Process(Working(env, pipe, dispatcherRequest, worldState));
             }
 
             /// <summary>
@@ -127,7 +132,7 @@ namespace DVRP.Simulaton
             /// <param name="pipe">Contains the next order</param>
             /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
             /// <returns></returns>
-            private IEnumerable<Event> Working(PseudoRealtimeSimulation env, Store pipe, Store dispatcherRequest) {
+            private IEnumerable<Event> Working(PseudoRealtimeSimulation env, Store pipe, Store dispatcherRequest, WorldState worldState) {
                 while(true) {
                     env.Log($"[{Id}] Requesting next assignment");
                     dispatcherRequest.Put(Id);
@@ -142,7 +147,7 @@ namespace DVRP.Simulaton
 
                     // Driving to the current position is not possible. Ignore and continue
                     if (assignment != CurrentRequest) {
-                        var travelTime = WorldState.CostMatrix[CurrentRequest, assignment];
+                        var travelTime = worldState.CostMatrix[CurrentRequest, assignment];
                         CurrentRequest = assignment;
 
                         env.Log($"[{Id}] Driving to customer {assignment}.");
@@ -163,67 +168,58 @@ namespace DVRP.Simulaton
         /// <summary>
         /// Starts the simulation
         /// </summary>
-        /// <param name="pubConnectionStr"></param>
-        /// <param name="subConnectionString"></param>
-        /// <param name="rseed"></param>
-        public void Simulate(string pubConnectionStr, string subConnectionString, int rseed = 42) {
-            var start = DateTime.Now;
-            var env = new PseudoRealtimeSimulation(start, rseed);
+        /// <param name="rseed">Random seed for the simulation</param>
+        public void Simulate(bool allowFastSimulation, int rseed = 42) {
+            Console.WriteLine("Run simulation");
+            env = new PseudoRealtimeSimulation(DateTime.Now, rseed);
+            this.allowFastSimulation = allowFastSimulation;
 
             // load problem instance
-            depot = LoadDepotMock();
-            dynamicRequests = LoadDynamicRequestsMock();
+            depot = new Domain.Request(problemInstance.XLocations[0], problemInstance.YLocations[0], 0, 0);
+            problemInstance.GetRequests(out var initialRequests, out dynamicRequests);
 
-            // publish advanced requests to queue
-            eventQueue = new SimulationQueue(pubConnectionStr, subConnectionString);
+            // Register event handler
+            eventQueue.SolutionReceived += HandleSolution;
 
-            eventQueue.OnEvent += (sender, args) => {
-                switch (args.Topic) {
-                    case "decision":
-                        HandleDecision(args.Message);
-                        realTimeEnforcer--;
+            // Create world state
+            WorldState = new WorldState(vehicleCount, depot, initialRequests, problemInstance.VehicleTypes);
 
-                        // If there is no unfinished problem left
-                        if(realTimeEnforcer <= 0) {
-                            env.SetVirtualtime();
-                        }
-                        
-                        break;
-                    case "score":
-                        HandleScore(args.Message);
-                        break;
-                    default:
-                        throw new Exception($"Could not handle event in topic {args.Topic}");
-                }
-            };
-
-            WorldState = new WorldState(vehicleCount, depot, LoadAdvancedRequestsMock(), LoadVehicleTypes());
-
+            // Start dynamic request handler
             env.Process(DynamicRequestHandler(env));
 
+            // Create and start dispatcher
             requestPipe = new Store(env);
             env.Process(Dispatcher(env, requestPipe));
 
-            // create pipes
+            // create pipes for vehicles
             pipes = Enumerable.Range(0, vehicleCount).Select(x => new Store(env)).ToArray();
 
             // create vehicles
-            vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, vehicleCapacity, pipes[x], x, requestPipe, depot)).ToArray();
+            vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, pipes[x], x, requestPipe, WorldState)).ToArray();
 
+            // Run simulation
             env.Run();
 
-            // TODO send result to optimizer
+            // send result to optimizer when simulation has finished
+            var finalSolution = WorldState.GetFinalSolution();
+            var cost = WorldState.EvaluateCurrentSolution();
+
             Console.WriteLine(WorldState.GetFinalSolution());
             Console.WriteLine($"Final cost: {WorldState.EvaluateCurrentSolution()}");
 
-            Console.ReadKey();
+            eventQueue.Publish(new SimulationResult(finalSolution, cost));
+
+            //Console.ReadKey();
         }
 
-        private void HandleDecision(string message) {
-            var solution = JsonSerializer.Deserialize<Solution>(message);
-
-            // Check if the solution is still feasible for the current world state
+        /// <summary>
+        /// Handle a <see cref="Solution"/>
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="solution"></param>
+        private void HandleSolution(object sender, Solution solution) {
             var cost = WorldState.EvaluateSolution(solution);
+
             Console.WriteLine($"Received solution with cost: {cost}");
             Console.WriteLine(solution);
 
@@ -231,47 +227,35 @@ namespace DVRP.Simulaton
                 // notify dispatcher
                 requestPipe.Put(-1);
             }
+
+            EnableVirtualTime();
         }
 
-        private void HandleScore(string message) {
-            /*var score = CalcScore(JsonSerializer.Deserialize<Solution>(message));
-            Console.WriteLine($"Publish score: {score}");
-            eventQueue.Publish(score);*/
+        /// <summary>
+        /// Switches to virtual time if it is allowed to
+        /// </summary>
+        private void EnableVirtualTime() {
+            if (allowFastSimulation) {
+                realTimeEnforcer--;
+
+                // If there is no unfinished problem left
+                if (realTimeEnforcer <= 0) {
+                    env.SetVirtualtime();
+                }
+            }
         }
 
+        /// <summary>
+        /// Publish a problem
+        /// </summary>
+        /// <param name="env"></param>
+        /// <param name="problem"></param>
         private void PublishProblem(PseudoRealtimeSimulation env, Problem problem) {
-            realTimeEnforcer++;
-            env.SetRealtime();
+            if(allowFastSimulation) {
+                realTimeEnforcer++;
+                env.SetRealtime();
+            }
             eventQueue.Publish(problem);
-        }
-
-        private Domain.Request LoadDepotMock() {
-            return new Domain.Request(0, 0, 0, 0);
-        }
-
-        private Domain.Request[] LoadAdvancedRequestsMock() {
-            return new Domain.Request[] {
-                new Domain.Request(12, 4, 10, 1),
-                new Domain.Request(2, 3, 15, 2),
-                new Domain.Request(20, 40, 30, 3),
-                new Domain.Request(12, 33, 2, 4),
-                new Domain.Request(4, 44, 37, 5),
-                new Domain.Request(21, 23, 50, 6)
-            };
-        }
-
-        private Dictionary<int, Domain.Request> LoadDynamicRequestsMock() {
-            return new Dictionary<int, Domain.Request>() {
-                { 1, new Domain.Request(10, 3, 5, 7) },
-                { 4, new Domain.Request(40, 23, 70, 8) }
-            };
-        }
-
-        private VehicleType[] LoadVehicleTypes() {
-            return new VehicleType[] {
-                new VehicleType(100, 3, 147),
-                new VehicleType(70, 2, 121)
-            };
         }
     }
 }

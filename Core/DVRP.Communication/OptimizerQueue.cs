@@ -6,38 +6,37 @@ using System.Text;
 using System.Threading.Tasks;
 using DVRP.Domain;
 using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace DVRP.Communication
 {
-    public class OptimizerQueue
+    public class OptimizerQueue : IOptimizerQueue
     {
         private PublisherSocket pubSocket;
         private SubscriberSocket subSocket;
 
-        private string publishChannel = "decision";
-        private string requestScoreChannel = "score";
-        private string subscribeChannel = "event";
-
-        public event EventHandler<EventArgs> OnEvent = delegate { };
+        public event EventHandler<Problem> ProblemReceived = delegate { };
+        public event EventHandler<SimulationResult> ResultsReceived = delegate { };
 
         public OptimizerQueue(string pubConnection, string subConnection) {
             pubSocket = new PublisherSocket(pubConnection);
 
             subSocket = new SubscriberSocket(subConnection);
-            subSocket.Subscribe(subscribeChannel);
-            subSocket.Subscribe(requestScoreChannel);
+            subSocket.Subscribe(Channel.Problem);
+            subSocket.Subscribe(Channel.SimulationResult);
+
             HandleEventIn();
         }
 
         public void Publish(Solution solution) {
-            Console.WriteLine(">>>>>>>>>>>>");
-            var json = JsonSerializer.Serialize(solution);
-            pubSocket.SendMoreFrame(publishChannel).SendFrame(json);
+            Console.WriteLine(">>>>>>>>>>>> solution");
+            var json = JsonConvert.SerializeObject(solution);
+            pubSocket.SendMoreFrame(Channel.Solution).SendFrame(json);
         }
 
-        public void RequestScore(Solution solution) {
-            var json = JsonSerializer.Serialize(solution);
-            pubSocket.SendMoreFrame(requestScoreChannel).SendFrame(json);
+        public void PublishStart(bool allowFastSimulation) {
+            Console.WriteLine(">>>>>>>>>>>> start");
+            pubSocket.SendMoreFrame(Channel.Start).SendFrame(allowFastSimulation.ToString());
         }
 
         private void HandleEventIn() {
@@ -46,9 +45,17 @@ namespace DVRP.Communication
                     var topic = subSocket.ReceiveFrameString();
                     var message = subSocket.ReceiveFrameString();
 
-                    if(OnEvent != null) {
-                        Console.WriteLine("<<<<<<<<<<<<<");
-                        OnEvent(this, new EventArgs(topic, message));
+                    switch (topic) {
+                        case Channel.Problem:
+                            Console.WriteLine("<<<<<<<<<<<<< problem");
+                            var problem = JsonConvert.DeserializeObject<Problem>(message);
+                            ProblemReceived(this, problem);
+                            break;
+                        case Channel.SimulationResult:
+                            Console.WriteLine("<<<<<<<<<<<<< simulation result");
+                            var result = JsonConvert.DeserializeObject<SimulationResult>(message);
+                            ResultsReceived(this, result);
+                            break;
                     }
                 }
             });

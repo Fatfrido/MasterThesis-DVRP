@@ -23,11 +23,6 @@ namespace DVRP.Domain
         public int[] VehicleCapacity { get; set; }
 
         /// <summary>
-        /// C02 emission of each vehicle
-        /// </summary>
-        public int[] Emissions { get; set; }
-
-        /// <summary>
         /// Index of the depot (usually 0)
         /// </summary>
         public int Depot { get; set; }
@@ -48,7 +43,7 @@ namespace DVRP.Domain
         public int[] Mapping { get; set; }
 
         public Problem() { }
-        public Problem(Request[] requests, int vehicleCount, int[] vehicleCapacity, int[] emissions, int[] start, long[,] costMatrix, int[] mapping, int depot = 0) {
+        public Problem(Request[] requests, int vehicleCount, int[] vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping, int depot = 0) {
             Requests = requests;
             VehicleCount = vehicleCount;
             VehicleCapacity = vehicleCapacity;
@@ -56,7 +51,6 @@ namespace DVRP.Domain
             CostMatrix = costMatrix;
             Start = start;
             Mapping = mapping;
-            Emissions = emissions;
         }
 
         /// <summary>

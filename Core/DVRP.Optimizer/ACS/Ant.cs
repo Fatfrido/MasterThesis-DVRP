@@ -208,7 +208,6 @@ namespace DVRP.Optimizer.ACS
             var currCapacity = problem.VehicleCapacity[vehicle - 1];
             var cost = 0.0;
             var lastRequest = solution.Route[0];
-            var emissions = 0.0;
             var visited = new bool[problem.Requests.Length];
 
             for(int i = 1; i < solution.Route.Length; i++) {
@@ -231,14 +230,12 @@ namespace DVRP.Optimizer.ACS
                     }
 
                     cost += costMatrix[lastRequest, solution.Route[i]]; // cost matrix has depot at index 0
-                    emissions += costMatrix[lastRequest, solution.Route[i]] * problem.Emissions[vehicle - 1];
                     lastRequest = solution.Route[i];
                 }
             }
 
             // return last vehicle to depot
             cost += costMatrix[lastRequest, 0];
-            //cost += emissions;
 
             solution.Cost = cost;
             return cost;

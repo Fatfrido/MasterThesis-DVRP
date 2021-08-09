@@ -6,7 +6,7 @@ using System.Text;
 
 namespace DVRP.Optimizer.GA
 {
-    public class GAOptimizer : IPeriodicOptimizer //IContinuousOptimizer
+    public class GAOptimizer : IContinuousOptimizer
     {
         public event EventHandler<Solution> NewBestSolutionFound;
 
@@ -132,11 +132,6 @@ namespace DVRP.Optimizer.GA
             }
 
             return population;
-        }
-
-        public Solution Solve(Problem problem) {
-            this.problem = problem;
-            return Run(10, 1, 0.8);
         }
     }
 }
