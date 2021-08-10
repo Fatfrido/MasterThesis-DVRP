@@ -95,7 +95,11 @@ namespace DVRP.Optimizer
                     PeriodicOptimizer = new ACSSolver(100, 3, 0.5, 0.5, 0.1);
                     break;
                 case Optimizer.GeneticAlgorithm:
-                    ContinuousOptimizer = new GAOptimizer(4, 1);
+                    if(ContinuousOptimizer != null) {
+                        ContinuousOptimizer.NewBestSolutionFound -= PublishSolution;
+                    }
+
+                    ContinuousOptimizer = new GAOptimizer(4, 2);
                     ContinuousOptimizer.NewBestSolutionFound += PublishSolution;
                     break;
             }

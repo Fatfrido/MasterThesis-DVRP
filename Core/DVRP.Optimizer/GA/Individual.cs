@@ -130,6 +130,7 @@ namespace DVRP.Optimizer.GA
                 }
 
                 capacity -= demand;
+                lastRequest = request;
                 cost += problem.GetCost(lastRequest, request);
             }
 
