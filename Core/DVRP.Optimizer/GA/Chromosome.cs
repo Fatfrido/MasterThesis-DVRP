@@ -31,6 +31,47 @@ namespace DVRP.Optimizer.GA
         }
 
         /// <summary>
+        /// Removes given values from the chromosome
+        /// </summary>
+        /// <param name="values"></param>
+        public void Remove(int[] values) {
+            var newData = new int[Data.Length - values.Length];
+            var newDataIndex = 0;
+
+            // Copy all values except those in the values array
+            for(int i = 0; i < Data.Length; i++) {
+                if(!values.Contains(Data[i])) {
+                    newData[newDataIndex] = Data[i];
+                    newDataIndex++;
+                }
+            }
+
+            Data = newData;
+        }
+
+        /// <summary>
+        /// Inserts a given value at a given index; the original chromosome is not modified
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="value"></param>
+        /// <returns>A new chromosome with the inserted value</returns>
+        public Chromosome Insert(int index, int value) {
+            var newData = new int[Data.Length + 1];
+
+            for(int i = 0; i < newData.Length; i++) {
+                if(i < index) {
+                    newData[i] = Data[i];
+                } else if(i == index) {
+                    newData[i] = value;
+                } else {
+                    newData[i] = Data[i - 1];
+                }
+            }
+
+            return new Chromosome(newData);
+        }
+
+        /// <summary>
         /// Inverts a random sequence of the chromosome
         /// </summary>
         public void ApplyInversionMutation() {

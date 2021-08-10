@@ -25,6 +25,39 @@ namespace DVRP.Optimizer.GA
         }
 
         /// <summary>
+        /// Removes a request from the chromosome
+        /// </summary>
+        /// <param name="request"></param>
+        public void RemoveRequests(int[] requests) {
+            RouteChromosome.Remove(requests);
+        }
+
+        /// <summary>
+        /// Inserts a request at the best possible position
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="problem"></param>
+        public void InsertRequest(int request, Problem problem) {
+            // Find the best position to insert the new request
+            var bestFitness = -1.0;
+            Chromosome bestChromosome = null;
+
+            for(int i = 0; i < RouteChromosome.Length + 1; i++) {
+                var newRouteChromosome = RouteChromosome.Insert(i, request);
+                var individual = new Individual(newRouteChromosome, VehicleChromosome);
+                var fitness = individual.CalculateFitness(problem);
+
+                if(fitness > bestFitness || bestChromosome == null) {
+                    bestFitness = fitness;
+                    bestChromosome = newRouteChromosome;
+                }
+            }
+
+            // Replace old chromosome with a new feasible one
+            RouteChromosome = bestChromosome;
+        }
+
+        /// <summary>
         /// Applies the partially mapped crossover to both chromosomes
         /// </summary>
         /// <param name="parent"></param>
@@ -82,6 +115,9 @@ namespace DVRP.Optimizer.GA
                 // Check capacity constraint
                 var demand = problem.Requests[idToIndexMapping[request]].Amount;
                 while (capacity - demand < 0) {
+                    // Drive vehicle back to depot
+                    cost += problem.GetCost(lastRequest, 0);
+
                     i++;
 
                     if(i >= VehicleChromosome.Length) {
@@ -103,6 +139,11 @@ namespace DVRP.Optimizer.GA
             return fitness;
         }
 
+        /// <summary>
+        /// Transform individual to a solution
+        /// </summary>
+        /// <param name="problem"></param>
+        /// <returns></returns>
         public Solution ToSolution(Problem problem) {
             var solution = new Solution(VehicleChromosome.Length);
             var vehicleIndex = 0;

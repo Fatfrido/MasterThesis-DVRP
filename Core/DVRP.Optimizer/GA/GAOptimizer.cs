@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DVRP.Optimizer.GA
 {
@@ -15,7 +17,9 @@ namespace DVRP.Optimizer.GA
         private int k;
         private Random random = new Random();
 
-        private bool stop = false;
+        private Individual[] population;
+        private Task optimizationTask;
+        private CancellationTokenSource tokenSource;
 
         public GAOptimizer(int populationSize, int k) {
             this.populationSize = populationSize;
@@ -23,40 +27,87 @@ namespace DVRP.Optimizer.GA
         }
 
         public void HandleNewProblem(Problem problem) {
-            if(this.problem == null) {
-                this.problem = problem;
-            }
-            //TODO
-        }
-
-        public void HandleStop() {
-            stop = true;
-        }
-
-        private Solution Run(int initialCalculationTime, int elites, double mutationProbability) {
-            // Make sure the problem is not null
-            if(problem == null) {
-                throw new ArgumentNullException("Problem must not be null");
+            // Stop current execution
+            if(optimizationTask != null) {
+                tokenSource.Cancel();
+                optimizationTask.Wait();
             }
 
-            var requests = problem.Requests.Select(x => x.Id).ToArray();
+            // Update population
+            if(population == null) {
+                var requests = problem.Requests.Select(x => x.Id).ToArray();
+                population = GenerateInitialPopulation(populationSize, requests, problem.VehicleCount);
+            } else {
+                UpdatePopulation(this.problem, problem);
+            }
 
-            // Generate initial population
-            var population = GenerateInitialPopulation(populationSize, requests, problem.VehicleCount);
+            // Update problem
+            this.problem = problem;
 
-            // Sort (to get elites later on)
-            population = population.OrderByDescending(x => x.Fitness).ToArray();
+            // Find solutions
+            tokenSource = new CancellationTokenSource();
+            optimizationTask = Task.Run(() => Run(10, 2, 0.6, tokenSource.Token));
+        }
+
+        /// <summary>
+        /// Updates the individuals of the popultation so that they contain the correct requests
+        /// </summary>
+        /// <param name="oldProblem"></param>
+        /// <param name="newProblem"></param>
+        private void UpdatePopulation(Problem oldProblem, Problem newProblem) {
+            if(oldProblem != newProblem) {
+                var toRemove = new List<int>();
+                var toAdd = new List<int>();
+
+                var newRequests = newProblem.Requests.Select(x => x.Id).ToArray();
+                var oldRequests = oldProblem.Requests.Select(x => x.Id).ToArray();
+
+                // Find requests that are new and must be added to the individuals
+                foreach (var newRequest in newRequests) {
+                    if (!oldRequests.Contains(newRequest)) {
+                        toAdd.Add(newRequest);
+                    }
+                }
+
+                // Find requests that are already commited and need to be removed from the individuals
+                foreach (var oldRequest in oldRequests) {
+                    if (!newRequests.Contains(oldRequest)) {
+                        toRemove.Add(oldRequest);
+                    }
+                }
+
+                // Remove requests
+                foreach (var individual in population) {
+                    individual.RemoveRequests(toRemove.ToArray());
+
+                    foreach (var request in toAdd) {
+                        individual.InsertRequest(request, newProblem);
+                    }
+                }
+            }
+        }
+
+        private void Run(int initialIterations, int elites, double mutationProbability, CancellationToken token) {
+            // Best solution found for the current problem
+            var bestSolutionFitness = -1.0;
 
             // Evaluate population
             foreach(var individual in population) {
                 individual.CalculateFitness(problem);
             }
 
-            int count = 0;
-            while(!stop) {
+            // Sort (to get elites later on)
+            population = population.OrderByDescending(x => x.Fitness).ToArray();
+
+            while (!token.IsCancellationRequested) {
                 var childPopulation = new List<Individual>();
 
                 for(int i = 0; i < populationSize; i++) {
+                    // Stop eventually
+                    if(token.IsCancellationRequested) {
+                        return;
+                    }
+
                     // Selection
                     var parent1 = SelectKTournament(k, population);
                     var parent2 = SelectKTournament(k, population);
@@ -83,17 +134,19 @@ namespace DVRP.Optimizer.GA
                 }
 
                 population = newGeneration;
+                population = population.OrderByDescending(x => x.Fitness).ToArray();
 
-                count++;
-                if(count > 50) {
-                    stop = true;
+                // Do not publish the result of the first few iterations
+                if(initialIterations > 0) {
+                    initialIterations--;
                 }
-            }
 
-            population = population.OrderByDescending(x => x.Fitness).ToArray();
-            var res = population[0].ToSolution(problem);
-
-            return res;
+                if(population[0].Fitness > bestSolutionFitness && initialIterations <= 0) {
+                    var res = population[0].ToSolution(problem);
+                    bestSolutionFitness = population[0].Fitness;
+                    NewBestSolutionFound(this, res);
+                }
+            } 
         }
 
         /// <summary>

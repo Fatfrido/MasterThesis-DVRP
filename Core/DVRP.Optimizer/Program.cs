@@ -50,7 +50,6 @@ namespace DVRP.Optimizer
                 allowFastSimulation = true; // Simulation speed will be increased if the optimizer is not busy
                 queue.ProblemReceived += (sender, problem) => PublishSolution(null, PeriodicOptimizer.Solve(problem));
             } else {
-                ContinuousOptimizer.NewBestSolutionFound += PublishSolution;
                 queue.ProblemReceived += (sender, problem) => ContinuousOptimizer.HandleNewProblem(problem);
             }
 
@@ -97,6 +96,7 @@ namespace DVRP.Optimizer
                     break;
                 case Optimizer.GeneticAlgorithm:
                     ContinuousOptimizer = new GAOptimizer(4, 1);
+                    ContinuousOptimizer.NewBestSolutionFound += PublishSolution;
                     break;
             }
         }
