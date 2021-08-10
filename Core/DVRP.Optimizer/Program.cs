@@ -22,6 +22,8 @@ namespace DVRP.Optimizer
         private static bool finished = false;
         private static bool allowFastSimulation = false;
 
+        private static List<SimulationResult> simulationResults = new List<SimulationResult>();
+
         static void Main(string[] args) {
             Console.WriteLine("Initializing optimizer...");
 
@@ -38,8 +40,7 @@ namespace DVRP.Optimizer
 
             queue.ResultsReceived += (sender, results) => {
                 finished = true;
-                Console.WriteLine($"Executed solution with score {results.Cost}:");
-                Console.WriteLine(results.Solution);
+                simulationResults.Add(results);
             };
 
             InitializeOptimizer(optimizerConfig.Optimizer);
@@ -72,6 +73,15 @@ namespace DVRP.Optimizer
                     Thread.Sleep(200);
                 }
             }
+
+            // Print results
+            Console.WriteLine("====== RESULTS =====");
+            foreach(var res in simulationResults) {
+                Console.WriteLine($"Executed solution with score {res.Cost}:");
+                Console.WriteLine(res.Solution);
+            }
+
+            Console.ReadKey();
         }
 
         private static void InitializeOptimizer(string optimizer) {

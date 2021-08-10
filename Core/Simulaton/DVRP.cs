@@ -170,7 +170,6 @@ namespace DVRP.Simulaton
         /// </summary>
         /// <param name="rseed">Random seed for the simulation</param>
         public void Simulate(bool allowFastSimulation, int rseed = 42) {
-            Console.WriteLine("Run simulation");
             env = new PseudoRealtimeSimulation(DateTime.Now, rseed);
             this.allowFastSimulation = allowFastSimulation;
 
@@ -199,6 +198,9 @@ namespace DVRP.Simulaton
 
             // Run simulation
             env.Run();
+
+            // Remove event handler (will be added again if a new simulation starts)
+            eventQueue.SolutionReceived -= HandleSolution;
 
             // send result to optimizer when simulation has finished
             var finalSolution = WorldState.GetFinalSolution();

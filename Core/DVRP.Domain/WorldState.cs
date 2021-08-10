@@ -91,7 +91,6 @@ namespace DVRP.Domain
 
             // Handle vehicles
             var tempCapacities = new List<int>();
-            var tempEmissions = new List<int>();
 
             foreach(var vehicleType in vehicleTypes) {
                 for(int i = 0; i < vehicleType.VehicleCount; i++) {
