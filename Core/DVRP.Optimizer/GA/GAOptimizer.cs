@@ -99,7 +99,7 @@ namespace DVRP.Optimizer.GA
             // Sort (to get elites later on)
             population = population.OrderByDescending(x => x.Fitness).ToArray();
 
-            while (!token.IsCancellationRequested) {
+            while (!token.IsCancellationRequested && problem.Requests.Length > 0) {
                 var childPopulation = new List<Individual>();
 
                 for(int i = 0; i < populationSize; i++) {

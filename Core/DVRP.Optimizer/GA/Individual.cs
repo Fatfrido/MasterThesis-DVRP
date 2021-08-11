@@ -114,7 +114,8 @@ namespace DVRP.Optimizer.GA
             foreach(var request in RouteChromosome) {
                 // Check capacity constraint
                 var demand = problem.Requests[idToIndexMapping[request]].Amount;
-                while (capacity - demand < 0) {
+
+                while (capacity - demand < 0) { // Not enough capacity on vehicle, try the next one
                     // Drive vehicle back to depot
                     cost += problem.GetCost(lastRequest, 0);
 
@@ -130,9 +131,12 @@ namespace DVRP.Optimizer.GA
                 }
 
                 capacity -= demand;
-                lastRequest = request;
                 cost += problem.GetCost(lastRequest, request);
+                lastRequest = request;
             }
+
+            // Drive last vehicle home to depot
+            cost += problem.GetCost(lastRequest, 0);
 
             var fitness = 1 / cost;
             Fitness = fitness;
@@ -148,26 +152,25 @@ namespace DVRP.Optimizer.GA
         public Solution ToSolution(Problem problem) {
             var solution = new Solution(VehicleChromosome.Length);
             var vehicleIndex = 0;
-            var vehicle = VehicleChromosome[vehicleIndex];
-            var capacity = problem.VehicleCapacity[vehicle - 1];
+            var vehicle = VehicleChromosome[vehicleIndex] - 1;
+            var capacity = problem.VehicleCapacity[vehicle];
             var route = new List<int>();
 
             foreach(var request in RouteChromosome) {
                 var demand = problem.Requests.Where(x => x.Id == request).First().Amount;
-                capacity -= demand;
 
-                while(capacity < 0) {
+                while(capacity - demand < 0) {
                     // Save current route
                     solution.AddRoute(vehicle, route.ToArray());
                     route.Clear();
 
                     // Next vehicle
                     vehicleIndex++;
-                    vehicle = VehicleChromosome[vehicleIndex];
-                    capacity = problem.VehicleCapacity[vehicle - 1];
-                    capacity -= demand;
+                    vehicle = VehicleChromosome[vehicleIndex] - 1;
+                    capacity = problem.VehicleCapacity[vehicle];
                 }
 
+                capacity -= demand;
                 route.Add(request);
             }
 
