@@ -1,45 +1,54 @@
-﻿using System;
+﻿using ProtoBuf;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace DVRP.Domain
 {
+    [ProtoContract]
     public class Problem
     {
         /// <summary>
         /// Uncommited requests
         /// </summary>
+        [ProtoMember(1)]
         public Request[] Requests { get; set; }
 
         /// <summary>
         /// Number of available vehicles
         /// </summary>
+        [ProtoMember(2)]
         public int VehicleCount { get; set; }
 
         /// <summary>
         /// Capacity of each vehicle
         /// </summary>
+        [ProtoMember(3)]
         public int[] VehicleCapacity { get; set; }
 
         /// <summary>
         /// Index of the depot (usually 0)
         /// </summary>
+        [ProtoMember(4)]
         public int Depot { get; set; }
 
         /// <summary>
         /// Starting positions of vehicles (indices)
         /// </summary>
+        [ProtoMember(5)]
         public int[] Start { get; set; }
 
         /// <summary>
         /// Cost matrix
         /// </summary>
-        public long[,] CostMatrix { get; set; }
+        [ProtoMember(6)]
+        public Matrix<long> CostMatrix { get; set; }
 
         /// <summary>
         /// Maps the index of a request to it's id
         /// </summary>
+        [ProtoMember(7)]
         public int[] Mapping { get; set; }
 
         public Problem() { }
@@ -48,7 +57,7 @@ namespace DVRP.Domain
             VehicleCount = vehicleCount;
             VehicleCapacity = vehicleCapacity;
             Depot = depot;
-            CostMatrix = costMatrix;
+            CostMatrix = new Matrix<long>(costMatrix);
             Start = start;
             Mapping = mapping;
         }

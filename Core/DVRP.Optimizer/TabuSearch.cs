@@ -14,7 +14,7 @@ namespace DVRP.Optimizer
         public Solution Solve(Problem problem) {
             // Create routing index manager
             RoutingIndexManager manager = 
-                new RoutingIndexManager(problem.CostMatrix.GetLength(0), problem.VehicleCount, problem.Start, 
+                new RoutingIndexManager(problem.CostMatrix.Dimension, problem.VehicleCount, problem.Start, 
                                         Enumerable.Repeat(problem.Depot, problem.VehicleCount).ToArray());
 
             // Create routing model
@@ -33,7 +33,7 @@ namespace DVRP.Optimizer
             //routing.SetArcCostEvaluatorOfVehicle(transitCallbackIndex, vehicle);
             
             // Get demand for each request
-            var demands = new int[problem.CostMatrix.GetLength(0)];
+            var demands = new int[problem.CostMatrix.Dimension];
             problem.Requests.Select(r => r.Amount).ToArray().CopyTo(demands, 1);
 
             // Add capacity constraint

@@ -2,6 +2,7 @@
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
+using ProtoBuf;
 using System;
 using System.Threading.Tasks;
 
@@ -27,14 +28,12 @@ namespace DVRP.Communication
 
         public void Publish(Problem problem) {
             Console.WriteLine(">>>>>>>>> problem");
-            var json = JsonConvert.SerializeObject(problem);
-            pubSocket.SendMoreFrame(Channel.Problem).SendFrame(json);
+            pubSocket.SendMoreFrame(Channel.Problem).SendFrame(problem.Serialize());
         }
 
         public void Publish(SimulationResult result) {
             Console.WriteLine(">>>>>>>>> result");
-            var json = JsonConvert.SerializeObject(result);
-            pubSocket.SendMoreFrame(Channel.SimulationResult).SendFrame(json);
+            pubSocket.SendMoreFrame(Channel.SimulationResult).SendFrame(result.Serialize());
         }
 
         /// <summary>
@@ -44,22 +43,17 @@ namespace DVRP.Communication
             var task = new Task(() => {
                 while(true) {
                     var topic = subSocket.ReceiveFrameString();
-                    var message = subSocket.ReceiveFrameString();
+                    var message = subSocket.ReceiveFrameBytes();
                     Console.WriteLine($"received message: {topic}");
 
                     switch (topic) {
                         case Channel.Solution:
                             Console.WriteLine("<<<<<<<<<< solution");
-                            var solution = JsonConvert.DeserializeObject<Solution>(message);
-                            SolutionReceived(this, solution);
+                            SolutionReceived(this, message.Deserialize<Solution>());
                             break;
                         case Channel.Start:
                             Console.WriteLine("<<<<<<<<<< start");
-                            if (bool.TryParse(message, out var allowFastSimulation)) {
-                                StartSimulationReceived(this, allowFastSimulation);
-                            } else {
-                                throw new ArgumentException($"'{message}' cannot be converted to bool");
-                            }
+                            StartSimulationReceived(this, message.Deserialize<bool>());
                             break;
                     }
                 }

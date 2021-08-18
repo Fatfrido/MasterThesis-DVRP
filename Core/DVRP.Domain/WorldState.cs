@@ -142,7 +142,7 @@ namespace DVRP.Domain
                 // clear current queue
                 nextRequests[vehicle].Clear();
 
-                foreach(var request in Solution.Data[vehicle]) {
+                foreach(var request in Solution.Data[vehicle].Data) {
                     nextRequests[vehicle].Enqueue(request);
                 }
             }
@@ -225,7 +225,7 @@ namespace DVRP.Domain
                 }
 
                 // Planned routes
-                foreach (var request in solution.Data[vehicle]) {
+                foreach (var request in solution.Data[vehicle].Data) {
                     // solution is deprecated
                     if(!KnownRequests.ContainsKey(request)) {
                         return -1;

@@ -30,31 +30,28 @@ namespace DVRP.Communication
 
         public void Publish(Solution solution) {
             Console.WriteLine(">>>>>>>>>>>> solution");
-            var json = JsonConvert.SerializeObject(solution);
-            pubSocket.SendMoreFrame(Channel.Solution).SendFrame(json);
+            pubSocket.SendMoreFrame(Channel.Solution).SendFrame(solution.Serialize());
         }
 
         public void PublishStart(bool allowFastSimulation) {
             Console.WriteLine(">>>>>>>>>>>> start");
-            pubSocket.SendMoreFrame(Channel.Start).SendFrame(allowFastSimulation.ToString());
+            pubSocket.SendMoreFrame(Channel.Start).SendFrame(allowFastSimulation.Serialize());
         }
 
         private void HandleEventIn() {
             var task = new Task(() => {
                 while(true) {
                     var topic = subSocket.ReceiveFrameString();
-                    var message = subSocket.ReceiveFrameString();
+                    var message = subSocket.ReceiveFrameBytes();
 
                     switch (topic) {
                         case Channel.Problem:
                             Console.WriteLine("<<<<<<<<<<<<< problem");
-                            var problem = JsonConvert.DeserializeObject<Problem>(message);
-                            ProblemReceived(this, problem);
+                            ProblemReceived(this, message.Deserialize<Problem>());
                             break;
                         case Channel.SimulationResult:
                             Console.WriteLine("<<<<<<<<<<<<< simulation result");
-                            var result = JsonConvert.DeserializeObject<SimulationResult>(message);
-                            ResultsReceived(this, result);
+                            ResultsReceived(this, message.Deserialize<SimulationResult>());
                             break;
                     }
                 }

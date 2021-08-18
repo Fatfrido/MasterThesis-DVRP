@@ -1,36 +1,37 @@
-﻿using System;
+﻿using ProtoBuf;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace DVRP.Domain
 {
+    [ProtoContract]
     public class Solution
     {
-        public int[][] Data { get; set; }
+        [ProtoMember(1)]
+        public Tour[] Data { get; set; }
 
         public Solution() { }
 
         public Solution(int vehicleNumber) {
-            Data = new int[vehicleNumber][];
+            Data = new Tour[vehicleNumber];
             for(int i = 0; i < vehicleNumber; i++) {
-                Data[i] = new int[0];
+                Data[i] = new Tour();
             }
         }
 
         public void AddRoute(int vehicle, int[] route) {
-            Data[vehicle] = route;
+            Data[vehicle] = new Tour(route.ToList()); // TODO use list as param??
         }
 
         public int[] GetRoute(int vehicle) {
-            return Data[vehicle];
+            return Data[vehicle].Data.ToArray();
         }
 
         public void ApplyMapping(int[] mapping) {
-            for (int i = 0; i < Data.GetLength(0); i++) { // vehicle
-                for(int j = 0; j < Data[i].Length; j++) { // tour
-                    Data[i][j] = mapping[Data[i][j]];
-                }
+            for(var i = 0; i < Data.Length; i++) {
+                Data[i].ApplyMapping(mapping);
             }
         }
 
