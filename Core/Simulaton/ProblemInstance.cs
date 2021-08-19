@@ -8,9 +8,14 @@ namespace DVRP.Simulaton
     public class ProblemInstance
     {
         /// <summary>
-        /// Vehicle types available in this problem instance
+        /// Capacity of each vehicle type
         /// </summary>
-        public VehicleType[] VehicleTypes { get; set; }
+        public int[] VehicleTypeCapacity { get; set; }
+
+        /// <summary>
+        /// Count of available vehicles of each type
+        /// </summary>
+        public int[] VehicleTypeCount { get; set; }
 
         /// <summary>
         /// X coordinate of all locations including depot (at 0)
@@ -57,6 +62,20 @@ namespace DVRP.Simulaton
             }
 
             initialRequests = initialRequestsList.ToArray();
+        }
+
+        /// <summary>
+        /// Returns the <see cref="VehicleType"/>s available in this problem
+        /// </summary>
+        /// <returns></returns>
+        public VehicleType[] GetVehicleTypes() {
+            var vehicleTypes = new VehicleType[VehicleTypeCapacity.Length];
+            
+            for(int i = 0; i < VehicleTypeCapacity.Length; i++) {
+                vehicleTypes[i] = new VehicleType(VehicleTypeCapacity[i], VehicleTypeCount[i]);
+            }
+
+            return vehicleTypes;
         }
     }
 }

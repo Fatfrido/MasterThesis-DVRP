@@ -1,14 +1,12 @@
 {
-    "VehicleTypes": [
-        {
-            "VehicleCount": 3,
-            "Capacity": 100
-        },
-        {
-            "VehicleCount": 2,
-            "Capacity": 70
-        }
-    ],
+	"VehicleTypeCapacity": [
+		100,
+		70
+	],
+	"VehicleTypeCount": [
+		3,
+		2
+	],
     "XLocations": [
         0,
         12,

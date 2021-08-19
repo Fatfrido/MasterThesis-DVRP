@@ -181,7 +181,7 @@ namespace DVRP.Simulaton
             eventQueue.SolutionReceived += HandleSolution;
 
             // Create world state
-            WorldState = new WorldState(vehicleCount, depot, initialRequests, problemInstance.VehicleTypes);
+            WorldState = new WorldState(vehicleCount, depot, initialRequests, problemInstance.GetVehicleTypes());
 
             // Start dynamic request handler
             env.Process(DynamicRequestHandler(env));
