@@ -1,0 +1,12 @@
+christofides: gleichmäßig verteilte kunden
+taillard: cluster mit ausreißern
+
+Grad der Dynamik:
+schwach: ~90% bekannt
+mittel:
+stark:
+
+instanz | anzahl dynamischer anfragen
+c50D_weak: 5
+c50D_medium: 
+c50D_strong: 

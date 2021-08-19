@@ -42,24 +42,31 @@ namespace DVRP.Simulaton
         /// </summary>
         /// <param name="initialRequests"></param>
         /// <param name="dynamicRequests"></param>
-        public void GetRequests(out Request[] initialRequests, out Dictionary<int, Request> dynamicRequests) {
+        public void GetRequests(out Request[] initialRequests, out DynamicRequestStore dynamicRequests) {
             var initialRequestsList = new List<Request>();
-            dynamicRequests = new Dictionary<int, Request>();
+            dynamicRequests = new DynamicRequestStore();
 
+            var id = 1;
             for(int i = 0; i < Available.Length; i++) {
                 var request = new Request(
                     XLocations[i + 1],
                     YLocations[i + 1],
                     Demands[i],
-                    i + 1
+                    -1 // the ids must be ordered by release time of a request
                     );
 
                 if (Available[i] < 1) { // available at the beginning
+                    request.Id = id;
                     initialRequestsList.Add(request);
+                    id++;
                 } else { // appears dynamically
+                    // ids of dynamic requests will be set later
                     dynamicRequests.Add(Available[i], request);
                 }
             }
+
+            // Sort dynamic requests by the time they will be available
+            dynamicRequests.UpdateIds(id);
 
             initialRequests = initialRequestsList.ToArray();
         }

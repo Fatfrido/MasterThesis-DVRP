@@ -10,12 +10,13 @@ namespace DVRP.Simulaton
 {
     public class DVRP
     {
-        private Dictionary<int, Domain.Request> dynamicRequests;
+        //private Dictionary<int, Domain.Request> dynamicRequests;
+        private DynamicRequestStore dynamicRequests;
 
-        private int vehicleCount = 5;
         private TimeSpan serviceTime = TimeSpan.FromMinutes(5);
         private Domain.Request depot;
         private ProblemInstance problemInstance;
+        private int vehicleCount;
 
         private int realTimeEnforcer = 0;
         private bool allowFastSimulation;
@@ -39,10 +40,16 @@ namespace DVRP.Simulaton
             //Thread.Sleep(500); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
             PublishProblem(env, WorldState.ToProblem());
 
-            foreach (var request in dynamicRequests) {
-                yield return env.Timeout(TimeSpan.FromSeconds(request.Key));
-                Console.WriteLine(">>> New Request <<<");
-                WorldState.AddRequest(request.Value);
+            foreach (var entry in dynamicRequests.GetRequests()) {
+                // Wait
+                yield return env.Timeout(TimeSpan.FromSeconds(entry.Item1));
+                
+                // Add new requests
+                foreach(var request in entry.Item2) {
+                    Console.WriteLine(">>> New Request <<<");
+                    WorldState.AddRequest(request);
+                }
+                
                 PublishProblem(env, WorldState.ToProblem());
             }
         }
@@ -84,7 +91,11 @@ namespace DVRP.Simulaton
 
             if (WorldState.TryCommitNextRequest(vehicle, out nextRequest)) {
                 pipe.Put(nextRequest);
-                PublishProblem(env, WorldState.ToProblem());
+                
+                // Do not publish a problem without requests
+                if(WorldState.KnownRequests.Count > 0) {
+                    PublishProblem(env, WorldState.ToProblem());
+                }
             }
         }
 
@@ -180,8 +191,12 @@ namespace DVRP.Simulaton
             // Register event handler
             eventQueue.SolutionReceived += HandleSolution;
 
+            // Get vehicle count
+            var vehicleTypes = problemInstance.GetVehicleTypes();
+            vehicleCount = vehicleTypes.Sum(x => x.VehicleCount);
+
             // Create world state
-            WorldState = new WorldState(vehicleCount, depot, initialRequests, problemInstance.GetVehicleTypes());
+            WorldState = new WorldState(vehicleCount, depot, initialRequests, vehicleTypes);
 
             // Start dynamic request handler
             env.Process(DynamicRequestHandler(env));
