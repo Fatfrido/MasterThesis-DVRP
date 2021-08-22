@@ -2,6 +2,7 @@
 using DVRP.Domain;
 using DVRP.Optimizer.ACS;
 using DVRP.Optimizer.GA;
+using DVRP.Optimizer.TS;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
@@ -45,7 +46,7 @@ namespace DVRP.Optimizer
                 simulationResults.Add(results);
             };
 
-            InitializeOptimizer(optimizerConfig.Optimizer);
+            InitializeOptimizer(optimizerConfig.Optimizer, config);
 
             // Settings depending in the optimizer type
             if(PeriodicOptimizer != null) {
@@ -63,7 +64,7 @@ namespace DVRP.Optimizer
             for (int i = 0; i < optimizerConfig.Iterations; i++) {
                 // Create actual optimizer
                 if(i < 1) {
-                    InitializeOptimizer(optimizerConfig.Optimizer);
+                    InitializeOptimizer(optimizerConfig.Optimizer, config);
                 }
 
                 // Start simulation
@@ -87,23 +88,29 @@ namespace DVRP.Optimizer
             Console.ReadKey();
         }
 
-        private static void InitializeOptimizer(string optimizer) {
+        private static void InitializeOptimizer(string optimizer, IConfigurationRoot root) {
+            var section = root.GetSection(optimizer);
+
             switch (optimizer) {
                 case Optimizer.Heuristic:
                     PeriodicOptimizer = new SimpleConstructionHeuristic();
                     break;
                 case Optimizer.TabuSearch:
+                    var tsConfig = section.Get<TabuSearchConfig>();
                     PeriodicOptimizer = new TabuSearch();
                     break;
                 case Optimizer.AntColonySystem:
-                    PeriodicOptimizer = new ACSSolver(100, 3, 0.5, 0.5, 0.1);
+                    var acsConfig = section.Get<AntColonySystemConfig>();
+                    PeriodicOptimizer = new ACSSolver(acsConfig.Iterations, acsConfig.Ants, acsConfig.EvaporationRate, acsConfig.PheromoneImportance, acsConfig.InitialPheromoneValue);
                     break;
                 case Optimizer.GeneticAlgorithm:
+                    var gaConfig = section.Get<GeneticAlgorithmConfig>();
+                    
                     if(ContinuousOptimizer != null) {
                         ContinuousOptimizer.NewBestSolutionFound -= PublishSolution;
                     }
 
-                    ContinuousOptimizer = new GAOptimizer(4, 2);
+                    ContinuousOptimizer = new GAOptimizer(gaConfig.PopulationSize, gaConfig.KTournament);
                     ContinuousOptimizer.NewBestSolutionFound += PublishSolution;
                     break;
             }
