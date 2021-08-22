@@ -6,7 +6,9 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -79,6 +81,8 @@ namespace DVRP.Optimizer
                 Console.WriteLine($"Executed solution with score {res.Cost}:");
                 Console.WriteLine(res.Solution);
             }
+
+            File.WriteAllText($"results/{optimizerConfig.Optimizer}.json", JsonConvert.SerializeObject(new Report(simulationResults)));
 
             Console.ReadKey();
         }
