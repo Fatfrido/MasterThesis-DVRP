@@ -12,7 +12,8 @@ namespace DVRP.Domain
         /// Value is a request and the key it's id
         /// Used to evaluate the final cost
         /// </summary>
-        public Dictionary<int, Request> History { get; private set; }
+        //public Dictionary<int, Request> History { get; private set; }
+        public History History { get; private set; }
 
         /// <summary>
         /// Contains the current request for each vehicle (index)
@@ -66,7 +67,8 @@ namespace DVRP.Domain
         private Queue<int>[] nextRequests;
 
         public WorldState(int vehicles, Request depot, Request[] knownRequests, VehicleType[] vehicleTypes) {
-            History = new Dictionary<int, Request>();
+            //History = new Dictionary<int, Request>();
+            History = new History(vehicles);
             VehicleCount = vehicles;
             CurrentRequests = new int[vehicles];
             Depot = depot;
@@ -159,7 +161,8 @@ namespace DVRP.Domain
                 CurrentRequests[vehicle] = request; // assign request to vehicle
                 FreeCapacities[vehicle] -= KnownRequests[request].Amount; // update available vehicle capacity
                 KnownRequests[request].Vehicle = vehicle; // assign vehicle to request
-                History.Add(KnownRequests[request].Id, KnownRequests[request]); // add request to history
+                //History.Add(KnownRequests[request].Id, KnownRequests[request]); // add request to history
+                History.Add(vehicle, KnownRequests[request]); // add request to history
                 KnownRequests.Remove(request); // remove request from known request since it is already assigned to a vehicle
                 return true;
             }
@@ -200,7 +203,7 @@ namespace DVRP.Domain
         /// <returns></returns>
         public double EvaluateSolution(Solution solution) {
             var totalCost = 0.0;
-            var visited = new bool[KnownRequests.Count() + History.Count()];
+            var visited = new bool[KnownRequests.Count() + History.Count];
 
             for (int vehicle = 0; vehicle < VehicleCount; vehicle++) {
                 var routeCost = 0.0;
@@ -209,19 +212,17 @@ namespace DVRP.Domain
                 var lastRequest = 0; // start at depot
 
                 // Finished requests
-                foreach (var entry in History) {
-                    if (entry.Value.Vehicle == vehicle) {
-                        var request = entry.Value;
-                        visited[request.Id - 1] = true;
-                        load += request.Amount;
+                foreach(var request in History[vehicle]) {
+                    visited[request.Id - 1] = true;
+                    load += request.Amount;
 
-                        // Violated capacity constraint
-                        if (load > capacity)
-                            return -1;
-
-                        routeCost += CostMatrix[lastRequest, request.Id];
-                        lastRequest = request.Id;
+                    // Violated capacity constraint
+                    if(load > capacity) {
+                        return -1;
                     }
+
+                    routeCost += CostMatrix[lastRequest, request.Id];
+                    lastRequest = request.Id;
                 }
 
                 // Planned routes
@@ -262,7 +263,7 @@ namespace DVRP.Domain
         /// <returns></returns>
         public double EvaluateCurrentSolution() {
             var totalCost = 0.0;
-            var visited = new bool[KnownRequests.Count() + History.Count()];
+            var visited = new bool[KnownRequests.Count() + History.Count];
 
             for (int vehicle = 0; vehicle < VehicleCount; vehicle++) {
                 var routeCost = 0.0;
@@ -271,19 +272,17 @@ namespace DVRP.Domain
                 var lastRequest = 0; // start at depot
 
                 // Finished requests
-                foreach (var entry in History) {
-                    if (entry.Value.Vehicle == vehicle) {
-                        var request = entry.Value;
-                        visited[request.Id - 1] = true;
-                        load += request.Amount;
+                foreach (var request in History[vehicle]) {
+                    visited[request.Id - 1] = true;
+                    load += request.Amount;
 
-                        // Violated capacity constraint
-                        if (load > capacity)
-                            return -1;
-
-                        routeCost += CostMatrix[lastRequest, request.Id];
-                        lastRequest = request.Id;
+                    // Violated capacity constraint
+                    if (load > capacity) {
+                        return -1;
                     }
+
+                    routeCost += CostMatrix[lastRequest, request.Id];
+                    lastRequest = request.Id;
                 }
 
                 // Planned routes
@@ -318,27 +317,12 @@ namespace DVRP.Domain
             return totalCost;// + emissions;
         }
 
+        /// <summary>
+        /// Returns the actually used solution
+        /// </summary>
+        /// <returns></returns>
         public Solution GetFinalSolution() {
-            var solution = new Solution(VehicleCount);
-            var routes = new List<int>[VehicleCount];
-
-            // init
-            for(int i = 0; i < routes.Length; i++) {
-                routes[i] = new List<int>();
-            }
-
-            // Recreate routes from history
-            foreach(var entry in History) {
-                var request = entry.Value;
-                routes[request.Vehicle].Add(request.Id);
-            }
-
-            // Add routes to solution
-            for(int i = 0; i < routes.Length; i++) {
-                solution.AddRoute(i, routes[i].ToArray());
-            }
-
-            return solution;
+            return History.ToSolution();
         }
 
         /// <summary>
@@ -421,8 +405,8 @@ namespace DVRP.Domain
         private Request GetRequest(int requestId) {
             if(requestId == 0) { // depot
                 return Depot;
-            } else if(History.ContainsKey(requestId)) { // request is already served
-                return History[requestId];
+            } else if(History.Contains(requestId)) { // request is already served
+                return History.GetRequest(requestId);
             } else { // request is yet to serve
                 return KnownRequests[requestId];
             }
