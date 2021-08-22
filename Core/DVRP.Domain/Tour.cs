@@ -21,5 +21,11 @@ namespace DVRP.Domain
         public void ApplyMapping(int[] mapping) {
             Data = Data.Select(x => mapping[x]).ToList();
         }
+
+        public override string ToString() {
+            var sb = new StringBuilder();
+            sb.AppendJoin('-', Data);
+            return sb.ToString();
+        }
     }
 }

@@ -43,7 +43,7 @@ namespace DVRP.Domain
             for(int i = 0; i < Data.GetLength(0); i++) { // vehicles
                 if(Data[i] != null) {
                     sb.Append($"[vehicle {i}] ")
-                        .AppendJoin('-', Data[i])
+                        .Append(Data[i])
                         .AppendLine();
                 }
             }

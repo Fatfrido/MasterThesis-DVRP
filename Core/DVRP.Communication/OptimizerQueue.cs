@@ -22,26 +22,27 @@ namespace DVRP.Communication
             pubSocket = new PublisherSocket(pubConnection);
 
             subSocket = new SubscriberSocket(subConnection);
-            subSocket.Subscribe(Channel.Problem);
-            subSocket.Subscribe(Channel.SimulationResult);
+            subSocket.Subscribe(Channel.Problem.ToString());
+            subSocket.Subscribe(Channel.SimulationResult.ToString());
 
             HandleEventIn();
         }
 
         public void Publish(Solution solution) {
             Console.WriteLine(">>>>>>>>>>>> solution");
-            pubSocket.SendMoreFrame(Channel.Solution).SendFrame(solution.Serialize());
+            pubSocket.SendMoreFrame(Channel.Solution.ToString()).SendFrame(solution.Serialize());
         }
 
         public void PublishStart(bool allowFastSimulation) {
             Console.WriteLine(">>>>>>>>>>>> start");
-            pubSocket.SendMoreFrame(Channel.Start).SendFrame(allowFastSimulation.Serialize());
+            pubSocket.SendMoreFrame(Channel.Start.ToString()).SendFrame(allowFastSimulation.Serialize());
         }
 
         private void HandleEventIn() {
             var task = new Task(() => {
                 while(true) {
-                    var topic = subSocket.ReceiveFrameString();
+                    var topicStr = subSocket.ReceiveFrameString();
+                    var topic = Enum.Parse(typeof(Channel), topicStr);
                     var message = subSocket.ReceiveFrameBytes();
 
                     switch (topic) {

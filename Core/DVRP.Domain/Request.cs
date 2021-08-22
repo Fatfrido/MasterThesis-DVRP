@@ -6,19 +6,16 @@ namespace DVRP.Domain
     [ProtoContract]
     public class Request
     {
-        [ProtoMember(1)]
         public int X { get; set; }
 
-        [ProtoMember(2)]
         public int Y { get; set; }
 
-        [ProtoMember(3)]
+        [ProtoMember(1)]
         public int Amount { get; set; }
 
-        [ProtoMember(4)]
+        [ProtoMember(2)]
         public int Id { get; set; }
 
-        [ProtoMember(5)]
         public int Vehicle { get; set; }
 
         public Request(int x, int y, int amount, int id) {

@@ -269,7 +269,6 @@ namespace DVRP.Domain
                 var capacity = Capacities[vehicle];
                 var load = 0;
                 var lastRequest = 0; // start at depot
-                // TODO add green-vrp stuff here
 
                 // Finished requests
                 foreach (var entry in History) {

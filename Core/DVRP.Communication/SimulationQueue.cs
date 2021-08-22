@@ -20,20 +20,20 @@ namespace DVRP.Communication
             pubSocket = new PublisherSocket(pubConnection);
 
             subSocket = new SubscriberSocket(subConnection);
-            subSocket.Subscribe(Channel.Solution);
-            subSocket.Subscribe(Channel.Start);
+            subSocket.Subscribe(Channel.Solution.ToString());
+            subSocket.Subscribe(Channel.Start.ToString());
 
             HandleEventIn();
         }
 
         public void Publish(Problem problem) {
             Console.WriteLine(">>>>>>>>> problem");
-            pubSocket.SendMoreFrame(Channel.Problem).SendFrame(problem.Serialize());
+            pubSocket.SendMoreFrame(Channel.Problem.ToString()).SendFrame(problem.Serialize());
         }
 
         public void Publish(SimulationResult result) {
             Console.WriteLine(">>>>>>>>> result");
-            pubSocket.SendMoreFrame(Channel.SimulationResult).SendFrame(result.Serialize());
+            pubSocket.SendMoreFrame(Channel.SimulationResult.ToString()).SendFrame(result.Serialize());
         }
 
         /// <summary>
@@ -42,7 +42,8 @@ namespace DVRP.Communication
         private void HandleEventIn() {
             var task = new Task(() => {
                 while(true) {
-                    var topic = subSocket.ReceiveFrameString();
+                    var topicStr = subSocket.ReceiveFrameString();
+                    var topic = Enum.Parse(typeof(Channel), topicStr);
                     var message = subSocket.ReceiveFrameBytes();
                     Console.WriteLine($"received message: {topic}");
 

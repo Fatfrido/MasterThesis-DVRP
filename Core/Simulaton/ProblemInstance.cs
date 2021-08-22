@@ -38,6 +38,16 @@ namespace DVRP.Simulaton
         public int[] Available { get; set; }
 
         /// <summary>
+        /// Time needed to service a customer
+        /// </summary>
+        public double ServiceTime { get; set; }
+
+        /// <summary>
+        /// Seconds per distance unit
+        /// </summary>
+        public double Speed { get; set; }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="initialRequests"></param>

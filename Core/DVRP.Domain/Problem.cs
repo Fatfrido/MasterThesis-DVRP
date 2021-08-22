@@ -28,35 +28,28 @@ namespace DVRP.Domain
         public int[] VehicleCapacity { get; set; }
 
         /// <summary>
-        /// Index of the depot (usually 0)
-        /// </summary>
-        [ProtoMember(4)]
-        public int Depot { get; set; }
-
-        /// <summary>
         /// Starting positions of vehicles (indices)
         /// </summary>
-        [ProtoMember(5)]
+        [ProtoMember(4)]
         public int[] Start { get; set; }
 
         /// <summary>
         /// Cost matrix
         /// </summary>
-        [ProtoMember(6)]
+        [ProtoMember(5)]
         public Matrix<long> CostMatrix { get; set; }
 
         /// <summary>
         /// Maps the index of a request to it's id
         /// </summary>
-        [ProtoMember(7)]
+        [ProtoMember(6)]
         public int[] Mapping { get; set; }
 
         public Problem() { }
-        public Problem(Request[] requests, int vehicleCount, int[] vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping, int depot = 0) {
+        public Problem(Request[] requests, int vehicleCount, int[] vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping) {
             Requests = requests;
             VehicleCount = vehicleCount;
             VehicleCapacity = vehicleCapacity;
-            Depot = depot;
             CostMatrix = new Matrix<long>(costMatrix);
             Start = start;
             Mapping = mapping;

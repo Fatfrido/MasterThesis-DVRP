@@ -15,7 +15,7 @@ namespace DVRP.Optimizer
             // Create routing index manager
             RoutingIndexManager manager = 
                 new RoutingIndexManager(problem.CostMatrix.Dimension, problem.VehicleCount, problem.Start, 
-                                        Enumerable.Repeat(problem.Depot, problem.VehicleCount).ToArray());
+                                        Enumerable.Repeat(0, problem.VehicleCount).ToArray());
 
             // Create routing model
             RoutingModel routing = new RoutingModel(manager);
@@ -76,7 +76,7 @@ namespace DVRP.Optimizer
                 while(!routing.IsEnd(index)) {
                     var node = manager.IndexToNode((int) index);
 
-                    if(node != problem.Depot && node != problem.Start[i]) { // ignore the depot and the current position
+                    if(node != 0 && node != problem.Start[i]) { // ignore the depot and the current position
                         route.Add(node);
                     }     
                     

@@ -13,7 +13,6 @@ namespace DVRP.Simulaton
         //private Dictionary<int, Domain.Request> dynamicRequests;
         private DynamicRequestStore dynamicRequests;
 
-        private TimeSpan serviceTime = TimeSpan.FromMinutes(5);
         private Domain.Request depot;
         private ProblemInstance problemInstance;
         private int vehicleCount;
@@ -54,11 +53,11 @@ namespace DVRP.Simulaton
             }
         }
 
-        private IEnumerable<Event> Dispatcher(PseudoRealtimeSimulation env, Store pipe) {
+        private IEnumerable<Event> Dispatcher(PseudoRealtimeSimulation env, Store dispatcherPipe) {
             // problem: dispatcher needs to be able to take initiative to give orders at the start.
             // otherwise vehicles that have no initial orders will not start to drive later if necessary!
             while(true) {
-                var get = pipe.Get();
+                var get = dispatcherPipe.Get();
                 yield return get;
 
                 var vehicle = (int) get.Value;
@@ -86,11 +85,11 @@ namespace DVRP.Simulaton
         /// <param name="vehicle"></param>
         /// <param name="pipe"></param>
         /// <param name="env"></param>
-        private void ApplyNextRequest(int vehicle, Store pipe, PseudoRealtimeSimulation env) {
+        private void ApplyNextRequest(int vehicle, Store vehiclePipe, PseudoRealtimeSimulation env) {
             int nextRequest;
 
             if (WorldState.TryCommitNextRequest(vehicle, out nextRequest)) {
-                pipe.Put(nextRequest);
+                vehiclePipe.Put(nextRequest);
                 
                 // Do not publish a problem without requests
                 if(WorldState.KnownRequests.Count > 0) {
@@ -129,11 +128,11 @@ namespace DVRP.Simulaton
             /// <param name="pipe">Contains the next order</param>
             /// <param name="id">Unique identifier</param>
             /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
-            public Vehicle(PseudoRealtimeSimulation env, Store pipe, int id, Store dispatcherRequest, WorldState worldState, int startIdx = 0) : base(env) {
+            public Vehicle(PseudoRealtimeSimulation env, Store pipe, int id, Store dispatcherRequest, WorldState worldState, double speed, double serviceTime, int startIdx = 0) : base(env) {
                 Id = id;
                 CurrentRequest = startIdx; // start at the depot
 
-                env.Process(Working(env, pipe, dispatcherRequest, worldState));
+                env.Process(Working(env, pipe, dispatcherRequest, worldState, speed, serviceTime));
             }
 
             /// <summary>
@@ -143,14 +142,14 @@ namespace DVRP.Simulaton
             /// <param name="pipe">Contains the next order</param>
             /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
             /// <returns></returns>
-            private IEnumerable<Event> Working(PseudoRealtimeSimulation env, Store pipe, Store dispatcherRequest, WorldState worldState) {
+            private IEnumerable<Event> Working(PseudoRealtimeSimulation env, Store vehiclePipe, Store dispatcherPipe, WorldState worldState, double speed, double serviceTime) {
                 while(true) {
                     env.Log($"[{Id}] Requesting next assignment");
-                    dispatcherRequest.Put(Id);
+                    dispatcherPipe.Put(Id);
                     IsIdle = true;
 
                     env.Log($"[{Id}] Waiting for next assignment");
-                    var get = pipe.Get();
+                    var get = vehiclePipe.Get();
                     yield return get;
                     IsIdle = false;
 
@@ -164,12 +163,12 @@ namespace DVRP.Simulaton
                         env.Log($"[{Id}] Driving to customer {assignment}.");
 
                         // travel time
-                        yield return env.Timeout(TimeSpan.FromSeconds(travelTime));
+                        yield return env.Timeout(TimeSpan.FromSeconds(travelTime * speed));
 
                         env.Log($"[{Id}] Arrived at customer {assignment}.");
 
                         // service time
-                        yield return env.Timeout(TimeSpan.FromSeconds(1));
+                        yield return env.Timeout(TimeSpan.FromSeconds(serviceTime));
                         env.Log($"[{Id}] Serviced customer {assignment}.");
                     }
                 }
@@ -209,7 +208,7 @@ namespace DVRP.Simulaton
             pipes = Enumerable.Range(0, vehicleCount).Select(x => new Store(env)).ToArray();
 
             // create vehicles
-            vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, pipes[x], x, requestPipe, WorldState)).ToArray();
+            vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, pipes[x], x, requestPipe, WorldState, problemInstance.Speed, problemInstance.ServiceTime)).ToArray();
 
             // Run simulation
             env.Run();
@@ -238,7 +237,7 @@ namespace DVRP.Simulaton
             var cost = WorldState.EvaluateSolution(solution);
 
             Console.WriteLine($"Received solution with cost: {cost}");
-            Console.WriteLine(solution);
+            //Console.WriteLine(solution);
 
             if (WorldState.TrySetNewSolution(solution)) {
                 // notify dispatcher
