@@ -9,20 +9,16 @@ namespace DVRP.Optimizer.ACS
     public class Ant
     {
         private long[,] costMatrix;
-        private double[,] pheromoneMatrix;
+        private PheromoneMatrix pheromoneMatrix;
         private double pheromoneImportance;
-        private double initialPheromoneValue;
         private Random random = new Random();
-        private double pheromoneEvaporation;
         private Problem problem;
 
-        public Ant(Problem problem, double[,] pheromoneMatrix, long[,] costMatrix, double pheromoneEvaporation, double pheromoneImportance, double initialPheromoneValue) {
+        public Ant(Problem problem, PheromoneMatrix pheromoneMatrix, long[,] costMatrix, double pheromoneImportance, int localSearchIterations) {
             this.problem = problem;
             this.costMatrix = costMatrix;
-            this.pheromoneEvaporation = pheromoneEvaporation;
             this.pheromoneImportance = pheromoneImportance;
             this.pheromoneMatrix = pheromoneMatrix;
-            this.initialPheromoneValue = initialPheromoneValue;
         }
 
         /// <summary>
@@ -104,7 +100,7 @@ namespace DVRP.Optimizer.ACS
                 status[nextRequest] = true;
                 route.Add(nextRequest);
 
-                UpdateTrailLevel(currentRequestIdx, nextRequest, problem);
+                pheromoneMatrix.LocalUpdate(currentRequestIdx, nextRequest, problem);
 
                 // Check if a dummy depot has been selected
                 if(nextRequest < problem.VehicleCount) {
@@ -129,12 +125,12 @@ namespace DVRP.Optimizer.ACS
         /// <param name="problem"></param>
         /// <param name="maxComputationTime"></param>
         /// <returns></returns>
-        private Solution LocalSearch(Solution initialSolution, Problem problem, int maxComputationTime) {
+        private Solution LocalSearch(Solution initialSolution, Problem problem, int iterations) {
             // find best solution with local search
             var bestSolution = initialSolution;
-            var iterations = 0; //TODO fix computation time
+            var i = 0;
 
-            while(iterations < maxComputationTime) {
+            while(i < iterations) {
                 // Try to place a request at a different position
                 var fromIndex = random.Next(1, bestSolution.Route.Length - 1);
                 var toIndex = random.Next(1, bestSolution.Route.Length - 1);
@@ -147,7 +143,7 @@ namespace DVRP.Optimizer.ACS
                     //Console.WriteLine($"[Ant] Found personal best: {bestSolution.Cost}");
                 }
 
-                iterations++;
+                i++;
             }
 
             return bestSolution;
@@ -176,19 +172,6 @@ namespace DVRP.Optimizer.ACS
 
             // should never get here
             return -1;
-        }
-
-        /// <summary>
-        /// Updates the local pheromone matrix between two requests
-        /// </summary>
-        /// <param name="from"></param>
-        /// <param name="to"></param>
-        private void UpdateTrailLevel(int from, int to, Problem problem) {
-            var fromPheromone = ACSSolver.ToPheromoneIndex(from, problem);
-            var toPheromone = ACSSolver.ToPheromoneIndex(to, problem);
-
-            pheromoneMatrix[fromPheromone, toPheromone] = ((1 - pheromoneEvaporation) * pheromoneMatrix[fromPheromone, toPheromone]) + 
-                (pheromoneEvaporation * initialPheromoneValue);
         }
 
         /// <summary>

@@ -35,6 +35,16 @@ namespace DVRP.Domain
             }
         }
 
+        public double Evaluate(Problem problem) {
+            var sum = 0.0;
+
+            foreach(var tour in Data) {
+                sum += tour.GetCost(problem);
+            }
+
+            return sum;
+        }
+
         public override string ToString() {
             var sb = new StringBuilder();
 

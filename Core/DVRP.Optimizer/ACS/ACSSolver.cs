@@ -8,38 +8,44 @@ namespace DVRP.Optimizer.ACS
 {
     public class ACSSolver : IPeriodicOptimizer
     {
-        private double[,] pheromoneMatrix;
-        private int computationTime;
+        private PheromoneMatrix pheromoneMatrix;
+        private int iterations;
         private int antNumber;
         private double pheromoneEvaporation;
         private double pheromoneImportance;
         private double initialPheromoneValue;
+        private int localSearchIterations;
+        private double pheromoneConservation;
 
-        public ACSSolver(int computationTime, int antNumber, double pheromoneEvaporation, double pheromoneImportance, double initialPheromoneValue) {
-            this.computationTime = computationTime;
+        public ACSSolver(int iterations, int antNumber, double pheromoneEvaporation, double pheromoneImportance, int localSearchIterations, double pheromoneConservation) {
+            this.iterations = iterations;
             this.antNumber = antNumber;
             this.pheromoneEvaporation = pheromoneEvaporation;
             this.pheromoneImportance = pheromoneImportance;
-            this.initialPheromoneValue = initialPheromoneValue;
+            this.localSearchIterations = localSearchIterations;
+            this.pheromoneConservation = pheromoneConservation;
         }
 
         public Domain.Solution Solve(Problem problem) {
+            // Update the initial pheromone value
+            this.initialPheromoneValue = CalculateInitialPheromoneValue(problem);
+
             // init pheromone level
-            if(pheromoneMatrix == null) {
+            if (pheromoneMatrix == null) {
                 // matrix needs to include dummy depots for each vehicle
-                pheromoneMatrix = InitPheromoneMatrix(problem, initialPheromoneValue);
+                pheromoneMatrix = new PheromoneMatrix(problem, initialPheromoneValue, pheromoneEvaporation, pheromoneConservation);
             } else {
                 // May be necessary to adjust pheromone matrix due to new requests
-                pheromoneMatrix = TransformPheromoneMatrix(problem, pheromoneMatrix, initialPheromoneValue);
+                pheromoneMatrix.Update(problem);
             }
 
             Solution bestSolution = null;
             var costMatrix = TransformDistanceMatrix(problem);
-            var remainingComputationTime = computationTime;
+            var remainingIterations = iterations;
 
-            while (0 < remainingComputationTime) { // TODO computation time
+            while (0 < remainingIterations) { // TODO computation time
                 for(int k = 0; k < antNumber; k++) {
-                    var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneEvaporation, pheromoneImportance, initialPheromoneValue);
+                    var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneImportance, localSearchIterations);
                     //Console.WriteLine($"[Ant-{k}] FindSolution...");
                     var solution = ant.FindSolution();
 
@@ -54,21 +60,14 @@ namespace DVRP.Optimizer.ACS
                 }
 
                 // update global pheromone trail
-                for(int i = 0; i < bestSolution.Route.Length - 1; i++) {
-                    var from = bestSolution.Route[i] - 1; // exclude depot
-                    var to = bestSolution.Route[i + 1] - 1;
+                pheromoneMatrix.GlobalUpdate(bestSolution, problem);
 
-                    from = ToPheromoneIndex(from, problem);
-                    to = ToPheromoneIndex(to, problem);
-
-                    // update every edge between each node (customer)
-                    pheromoneMatrix[from, to] =
-                        (1 - pheromoneEvaporation) * pheromoneMatrix[from, to] +
-                        pheromoneEvaporation / bestSolution.Cost;
-                }
-
-                remainingComputationTime--; // this is just temporary
+                remainingIterations--;
             }
+
+            // Apply pheromone conservation for the next problem
+            pheromoneMatrix.Conserve();
+
             var convertedSolution = bestSolution.ConvertToDomainSolution();
             convertedSolution.ApplyMapping(problem.Mapping);
             Console.WriteLine("---------------------------------------------");
@@ -78,39 +77,9 @@ namespace DVRP.Optimizer.ACS
             return convertedSolution;
         }
 
-        /// <summary>
-        /// Creates a pheromone matrix with a fixed pheromone value
-        /// </summary>
-        /// <param name="locationNumber"></param>
-        /// <param name="initialPheromoneValue"></param>
-        /// <returns></returns>
-        private double[,] InitPheromoneMatrix(Problem problem, double initialPheromoneValue) {
-            var length = problem.VehicleCount + problem.Requests.Length + 1; // depot
-            var matrix = new double[length, length];
-
-            for(int i = 0; i < length; i++) {
-                for(int j = 0; j < length; j++) {
-                    matrix[i, j] = initialPheromoneValue;
-                }
-            }
-
-            return matrix;
-        }
-
-        /// <summary>
-        /// Maps the index of a problem to the global pheromone matrix
-        /// </summary>
-        /// <param name="index"></param>
-        /// <param name="problem"></param>
-        /// <returns></returns>
-        public static int ToPheromoneIndex(int index, Problem problem) {
-            if (index <= problem.VehicleCount) {
-                return index;
-            } else {
-                // Get the id of the request at index and add vehicle count and depot to get the correct index on the pheromone matrix
-                var res = problem.Mapping[index - problem.VehicleCount - 1] + problem.VehicleCount;
-                return res;
-            }
+        private double CalculateInitialPheromoneValue(Problem problem) {
+            var heuristic = new SimpleConstructionHeuristic();
+            return 1 / (problem.Requests.Length * heuristic.Solve(problem).Evaluate(problem));
         }
 
         /// <summary>
@@ -155,51 +124,6 @@ namespace DVRP.Optimizer.ACS
                         matrix[i, j] = 0;
                     } else {
                         matrix[i, j] = problem.CostMatrix[from, to];
-                    }
-                }
-            }
-
-            return matrix;
-        }
-
-        /// <summary>
-        /// Extends the original pheromone matrtix if necessary
-        /// </summary>
-        /// <param name="vehicleCount"></param>
-        /// <param name="requestCount"></param>
-        /// <param name="pheromoneMatrix"></param>
-        /// <param name="initialPheromoneValue"></param>
-        /// <returns></returns>
-        private double[,] TransformPheromoneMatrix(Problem problem, double[,] pheromoneMatrix, double initialPheromoneValue) {
-            var currentLength = pheromoneMatrix.GetLength(0);
-
-            // Check if there is a new request (unknown id)
-            var maxId = 0; // The highest id of all current requests
-
-            for(int i = 0; i < problem.Requests.Length; i++) {
-                if(problem.Requests[i].Id > maxId) {
-                    maxId = problem.Requests[i].Id;
-                }
-            }
-
-            // Transform maxId to the id it would have in the pheromone matrix
-            var maxIdx = maxId + problem.VehicleCount;
-
-            // The matrix is big enough for the highest id => no unhandled request
-            if (currentLength > maxIdx) {
-                return pheromoneMatrix;
-            }
-
-            // The new length is the current length plus the difference to fit the highest id
-            var newLength = currentLength + (maxIdx - (currentLength - 1));
-            var matrix = new double[newLength, newLength];
-
-            for(int i = 0; i < newLength; i++) {
-                for(int j = 0; j < newLength; j++) {
-                    if(i < currentLength && j < currentLength) { // copy
-                        matrix[i, j] = pheromoneMatrix[i, j];
-                    } else {
-                        matrix[i, j] = initialPheromoneValue;
                     }
                 }
             }

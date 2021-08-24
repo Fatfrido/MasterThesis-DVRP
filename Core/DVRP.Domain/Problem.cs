@@ -67,5 +67,20 @@ namespace DVRP.Domain
 
             return CostMatrix[i, j];
         }
-    }
+
+        /// <summary>
+        /// Creates a mapping that maps a requestId to the corresponding index in this problem
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<int, int> CreateReverseMapping() {
+            var idToIndexMapping = new Dictionary<int, int>();
+
+            idToIndexMapping.Add(0, 0); // depot
+            for (int j = 0; j < Requests.Length; j++) {
+                idToIndexMapping.Add(Requests[j].Id, j + 1); // depot is at 0/0
+            }
+
+            return idToIndexMapping;
+        }
+}
 }
