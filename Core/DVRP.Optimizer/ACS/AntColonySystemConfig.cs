@@ -10,6 +10,7 @@ namespace DVRP.Optimizer.ACS
         public int Ants { get; set; }
         public double EvaporationRate { get; set; }
         public double PheromoneImportance { get; set; }
-        public double InitialPheromoneValue { get; set; }
+        public int LocalSearchIterations { get; set; }
+        public double PheromoneConservation { get; set; }
     }
 }

@@ -13,12 +13,14 @@ namespace DVRP.Optimizer.ACS
         private double pheromoneImportance;
         private Random random = new Random();
         private Problem problem;
+        private int localSearchIterations;
 
         public Ant(Problem problem, PheromoneMatrix pheromoneMatrix, long[,] costMatrix, double pheromoneImportance, int localSearchIterations) {
             this.problem = problem;
             this.costMatrix = costMatrix;
             this.pheromoneImportance = pheromoneImportance;
             this.pheromoneMatrix = pheromoneMatrix;
+            this.localSearchIterations = localSearchIterations;
         }
 
         /// <summary>
@@ -29,12 +31,7 @@ namespace DVRP.Optimizer.ACS
             var initialSolution = BuildInitialSolution(problem);
             initialSolution.Cost = Evaluate(initialSolution, problem);
 
-            while(initialSolution.Cost < 0) { // solution must be feasible -> improve BuildInitialSolution to only return feasible solutions?
-                initialSolution = BuildInitialSolution(problem);
-                initialSolution.Cost = Evaluate(initialSolution, problem);
-            }
-
-            return LocalSearch(initialSolution, problem, 100);
+            return LocalSearch(initialSolution, problem, localSearchIterations);
         }
 
         /// <summary>
@@ -67,10 +64,14 @@ namespace DVRP.Optimizer.ACS
                 for(int j = 0; j < status.Length; j++) {
                     if(status[j] == false) { // each request is visited exactly once 
                         // check capacity constraint for normal requests (not dummy depots)
-                        //if(j < problem.VehicleCount || vehicleCapacity - problem.Requests[j - problem.VehicleCount].Amount >= 0) {
-                        options.Add(j);
-                        //}
+                        if(j < problem.VehicleCount || vehicleCapacity - problem.Requests[j - problem.VehicleCount].Amount >= 0) {
+                            options.Add(j);
+                        }
                     }
+                }
+
+                if(options.Count < 1) { // no more feasible option available
+                    return BuildInitialSolution(problem);
                 }
 
                 // Calculate attractivity for each option
