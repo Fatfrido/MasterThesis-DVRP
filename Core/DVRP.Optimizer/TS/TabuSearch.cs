@@ -11,6 +11,16 @@ namespace DVRP.Optimizer
 {
     public class TabuSearch : IPeriodicOptimizer
     {
+        private int duration;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="duration">Time the TabuSearch uses to find a solution (in nanoseconds)</param>
+        public TabuSearch(int duration) {
+            this.duration = duration;
+        }
+
         public Solution Solve(Problem problem) {
             // Create routing index manager
             RoutingIndexManager manager = 
@@ -29,8 +39,6 @@ namespace DVRP.Optimizer
 
             // Define cost of each edge
             routing.SetArcCostEvaluatorOfAllVehicles(transitCallbackIndex);
-
-            //routing.SetArcCostEvaluatorOfVehicle(transitCallbackIndex, vehicle);
             
             // Get demand for each request
             var demands = new int[problem.CostMatrix.Dimension];
@@ -52,7 +60,7 @@ namespace DVRP.Optimizer
             // see: https://github.com/google/or-tools/issues/298
             searchParameters.FirstSolutionStrategy = FirstSolutionStrategy.Types.Value.ParallelCheapestInsertion;
             searchParameters.LocalSearchMetaheuristic = LocalSearchMetaheuristic.Types.Value.TabuSearch;
-            searchParameters.TimeLimit = new Duration { Seconds = 1 };
+            searchParameters.TimeLimit = new Duration { Nanos = duration };
 
             Assignment solution = routing.SolveWithParameters(searchParameters);
             return ConvertToSolution(solution, problem, manager, routing);

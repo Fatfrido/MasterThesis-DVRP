@@ -97,7 +97,8 @@ namespace DVRP.Optimizer
                     break;
                 case Optimizer.TabuSearch:
                     var tsConfig = section.Get<TabuSearchConfig>();
-                    PeriodicOptimizer = new TabuSearch();
+                    int duration = (int) Math.Round(TimeSpan.FromSeconds(tsConfig.Seconds).TotalMilliseconds) * 1000000; // nanoseconds are needed for TS
+                    PeriodicOptimizer = new TabuSearch(duration);
                     break;
                 case Optimizer.AntColonySystem:
                     var acsConfig = section.Get<AntColonySystemConfig>();
@@ -110,7 +111,7 @@ namespace DVRP.Optimizer
                         ContinuousOptimizer.NewBestSolutionFound -= PublishSolution;
                     }
 
-                    ContinuousOptimizer = new GAOptimizer(gaConfig.PopulationSize, gaConfig.KTournament);
+                    ContinuousOptimizer = new GAOptimizer(gaConfig.PopulationSize, gaConfig.KTournament, gaConfig.InitialIterations, gaConfig.Elites, gaConfig.MutationRate);
                     ContinuousOptimizer.NewBestSolutionFound += PublishSolution;
                     break;
             }

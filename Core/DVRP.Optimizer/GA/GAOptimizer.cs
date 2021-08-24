@@ -15,15 +15,21 @@ namespace DVRP.Optimizer.GA
         private Problem problem;
         private int populationSize;
         private int k;
+        private int initialIterations;
+        private int elites;
+        private double mutationProbability;
         private Random random = new Random();
 
         private Individual[] population;
         private Task optimizationTask;
         private CancellationTokenSource tokenSource;
 
-        public GAOptimizer(int populationSize, int k) {
+        public GAOptimizer(int populationSize, int k, int initialIterations, int elites, double mutationProbability) {
             this.populationSize = populationSize;
             this.k = k;
+            this.initialIterations = initialIterations;
+            this.elites = elites;
+            this.mutationProbability = mutationProbability;
         }
 
         public void HandleNewProblem(Problem problem) {
@@ -46,7 +52,7 @@ namespace DVRP.Optimizer.GA
 
             // Find solutions
             tokenSource = new CancellationTokenSource();
-            optimizationTask = Task.Run(() => Run(10, 2, 0.6, tokenSource.Token));
+            optimizationTask = Task.Run(() => Run(initialIterations, elites, mutationProbability, tokenSource.Token));
         }
 
         /// <summary>

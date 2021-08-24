@@ -9,5 +9,7 @@ namespace DVRP.Optimizer.GA
         public int PopulationSize { get; set; }
         public int KTournament { get; set; }
         public double MutationRate { get; set; }
+        public int Elites { get; set; }
+        public int InitialIterations { get; set; }
     }
 }

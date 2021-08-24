@@ -6,6 +6,6 @@ namespace DVRP.Optimizer.TS
 {
     public class TabuSearchConfig
     {
-        public int Seconds { get; set; }
+        public double Seconds { get; set; }
     }
 }
