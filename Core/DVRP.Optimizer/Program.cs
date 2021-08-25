@@ -102,7 +102,7 @@ namespace DVRP.Optimizer
                     break;
                 case Optimizer.AntColonySystem:
                     var acsConfig = section.Get<AntColonySystemConfig>();
-                    PeriodicOptimizer = new AntColonySystem(acsConfig.Iterations, acsConfig.Ants, acsConfig.EvaporationRate, acsConfig.PheromoneImportance, 100, 0.3);
+                    PeriodicOptimizer = new AntColonySystem(acsConfig.Iterations, acsConfig.Ants, acsConfig.EvaporationRate, acsConfig.PheromoneImportance, 100, 0.3, 0.9);
                     break;
                 case Optimizer.GeneticAlgorithm:
                     var gaConfig = section.Get<GeneticAlgorithmConfig>();

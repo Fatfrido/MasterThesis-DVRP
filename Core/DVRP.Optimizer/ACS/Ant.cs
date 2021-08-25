@@ -14,13 +14,15 @@ namespace DVRP.Optimizer.ACS
         private Random random = new Random();
         private Problem problem;
         private int localSearchIterations;
+        private double exploitationImportance;
 
-        public Ant(Problem problem, PheromoneMatrix pheromoneMatrix, long[,] costMatrix, double pheromoneImportance, int localSearchIterations) {
+        public Ant(Problem problem, PheromoneMatrix pheromoneMatrix, long[,] costMatrix, double pheromoneImportance, int localSearchIterations, double exploitationImportance) {
             this.problem = problem;
             this.costMatrix = costMatrix;
             this.pheromoneImportance = pheromoneImportance;
             this.pheromoneMatrix = pheromoneMatrix;
             this.localSearchIterations = localSearchIterations;
+            this.exploitationImportance = exploitationImportance;
         }
 
         /// <summary>
@@ -82,7 +84,7 @@ namespace DVRP.Optimizer.ACS
                     var cost = costMatrix[currentRequestIdx + 1, option + 1];
 
                     if (cost <= 0) // make sure to not divide by 0
-                        cost = 10;
+                        cost = 100; // if this value is too low, stack overflow might occur
 
                     var generalAttractiveness = 1.0 / cost; // cost matrix includes the real depot at index 0
                     var pheromoneAttractiveness = Math.Pow(pheromoneMatrix[currentRequestIdx, option], pheromoneImportance);
@@ -92,12 +94,26 @@ namespace DVRP.Optimizer.ACS
 
                 // calculate probability
                 var probabilities = new Dictionary<int, double>(options.Count());
+                var maxP = 0.0;
+                var maxOption = 0;
 
                 foreach (var option in options) {
-                    probabilities[option] = attractiveness[option] / attractivenessSum;
+                    var p = attractiveness[option] / attractivenessSum;
+                    probabilities[option] = p;
+                    
+                    if(p > maxP) {
+                        maxP = p;
+                        maxOption = option;
+                    }
                 }
 
-                nextRequest = SelectRandomCustomer(probabilities);
+                // Select the option with the highest probability with probability exploitationImportance (q)
+                if(random.NextDouble() < exploitationImportance) {
+                    nextRequest = maxOption;
+                } else {
+                    nextRequest = SelectRandomCustomer(probabilities);
+                }
+
                 status[nextRequest] = true;
                 route.Add(nextRequest);
 

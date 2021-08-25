@@ -1,6 +1,7 @@
 ﻿using DVRP.Domain;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace DVRP.Simulaton
@@ -93,6 +94,22 @@ namespace DVRP.Simulaton
             }
 
             return vehicleTypes;
+        }
+
+        public ProblemInstance Clone() {
+            var clone = new ProblemInstance();
+            
+            // Deep copy
+            clone.Available = Available.ToArray();
+            clone.Demands = Demands.ToArray();
+            clone.ServiceTime = ServiceTime;
+            clone.Speed = Speed;
+            clone.VehicleTypeCapacity = VehicleTypeCapacity.ToArray();
+            clone.VehicleTypeCount = VehicleTypeCount.ToArray();
+            clone.XLocations = XLocations.ToArray();
+            clone.YLocations = YLocations.ToArray();
+
+            return clone;
         }
     }
 }

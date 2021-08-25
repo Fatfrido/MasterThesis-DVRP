@@ -16,14 +16,16 @@ namespace DVRP.Optimizer.ACS
         private double initialPheromoneValue;
         private int localSearchIterations;
         private double pheromoneConservation;
+        private double exploitationImportance;
 
-        public AntColonySystem(int iterations, int antNumber, double pheromoneEvaporation, double pheromoneImportance, int localSearchIterations, double pheromoneConservation) {
+        public AntColonySystem(int iterations, int antNumber, double pheromoneEvaporation, double pheromoneImportance, int localSearchIterations, double pheromoneConservation, double exploitationImportance) {
             this.iterations = iterations;
             this.antNumber = antNumber;
             this.pheromoneEvaporation = pheromoneEvaporation;
             this.pheromoneImportance = pheromoneImportance;
             this.localSearchIterations = localSearchIterations;
             this.pheromoneConservation = pheromoneConservation;
+            this.exploitationImportance = exploitationImportance;
         }
 
         public Domain.Solution Solve(Problem problem) {
@@ -45,7 +47,7 @@ namespace DVRP.Optimizer.ACS
 
             while (0 < remainingIterations) {
                 for(int k = 0; k < antNumber; k++) {
-                    var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneImportance, localSearchIterations);
+                    var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneImportance, localSearchIterations, exploitationImportance);
                     //Console.WriteLine($"[Ant-{k}] FindSolution...");
                     var solution = ant.FindSolution();
 
