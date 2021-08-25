@@ -6,7 +6,7 @@ using System.Text;
 
 namespace DVRP.Optimizer.ACS
 {
-    public class ACSSolver : IPeriodicOptimizer
+    public class AntColonySystem : IPeriodicOptimizer
     {
         private PheromoneMatrix pheromoneMatrix;
         private int iterations;
@@ -17,7 +17,7 @@ namespace DVRP.Optimizer.ACS
         private int localSearchIterations;
         private double pheromoneConservation;
 
-        public ACSSolver(int iterations, int antNumber, double pheromoneEvaporation, double pheromoneImportance, int localSearchIterations, double pheromoneConservation) {
+        public AntColonySystem(int iterations, int antNumber, double pheromoneEvaporation, double pheromoneImportance, int localSearchIterations, double pheromoneConservation) {
             this.iterations = iterations;
             this.antNumber = antNumber;
             this.pheromoneEvaporation = pheromoneEvaporation;
@@ -43,7 +43,7 @@ namespace DVRP.Optimizer.ACS
             var costMatrix = TransformDistanceMatrix(problem);
             var remainingIterations = iterations;
 
-            while (0 < remainingIterations) { // TODO computation time
+            while (0 < remainingIterations) {
                 for(int k = 0; k < antNumber; k++) {
                     var ant = new Ant(problem, pheromoneMatrix, costMatrix, pheromoneImportance, localSearchIterations);
                     //Console.WriteLine($"[Ant-{k}] FindSolution...");
@@ -78,7 +78,7 @@ namespace DVRP.Optimizer.ACS
         }
 
         private double CalculateInitialPheromoneValue(Problem problem) {
-            var heuristic = new SimpleConstructionHeuristic();
+            var heuristic = new GreedyHeuristic();
             return 1 / (problem.Requests.Length * heuristic.Solve(problem).Evaluate(problem));
         }
 

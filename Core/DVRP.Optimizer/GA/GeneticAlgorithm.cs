@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DVRP.Optimizer.GA
 {
-    public class GAOptimizer : IContinuousOptimizer
+    public class GeneticAlgorithm : IContinuousOptimizer
     {
         public event EventHandler<Solution> NewBestSolutionFound;
 
@@ -24,7 +24,7 @@ namespace DVRP.Optimizer.GA
         private Task optimizationTask;
         private CancellationTokenSource tokenSource;
 
-        public GAOptimizer(int populationSize, int k, int initialIterations, int elites, double mutationProbability) {
+        public GeneticAlgorithm(int populationSize, int k, int initialIterations, int elites, double mutationProbability) {
             this.populationSize = populationSize;
             this.k = k;
             this.initialIterations = initialIterations;
