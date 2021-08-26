@@ -10,8 +10,6 @@ namespace DVRP.Simulaton
 {
     class Program
     {
-        private static DVRP sim;
-
         static void Main(string[] args) {
             Console.WriteLine("Initializing simulation...");
 
@@ -26,15 +24,11 @@ namespace DVRP.Simulaton
             ISimulationQueue queue = 
                 new SimulationQueue(simulationConfig.PublishConnectionString, simulationConfig.SubscribeConnectionString);
 
-            queue.StartSimulationReceived += (sender, allowFastSimulation) => {
-                new Task(() => sim.Simulate(allowFastSimulation)).Start();
+            var sim = new DVRP(queue);
+
+            queue.StartSimulationReceived += (sender, startSimulationMessage) => {
+                new Task(() => sim.Simulate(startSimulationMessage)).Start();
             };
-
-            // Read problem instance
-            var file = File.ReadAllText($"./{simulationConfig.ProblemInstanceName}.json");
-            var dvrp = JsonConvert.DeserializeObject<ProblemInstance>(file);
-
-            sim = new DVRP(queue, dvrp);
 
             Console.WriteLine("Simulation is ready");
 

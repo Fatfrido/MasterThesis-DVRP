@@ -72,9 +72,9 @@ namespace DVRP.Optimizer.ACS
 
             var convertedSolution = bestSolution.ConvertToDomainSolution();
             convertedSolution.ApplyMapping(problem.Mapping);
-            Console.WriteLine("---------------------------------------------");
-            Console.WriteLine($"Best solution: {bestSolution.Cost}");
-            Console.WriteLine(convertedSolution);
+            //Console.WriteLine("---------------------------------------------");
+            //Console.WriteLine($"Best solution: {bestSolution.Cost}");
+            //Console.WriteLine(convertedSolution);
 
             return convertedSolution;
         }

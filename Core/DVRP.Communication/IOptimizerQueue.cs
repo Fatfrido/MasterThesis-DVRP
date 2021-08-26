@@ -16,8 +16,7 @@ namespace DVRP.Communication
         /// <summary>
         /// Publishes an event that indicates the solution to start
         /// </summary>
-        /// <param name="allowFastSimulation">Set to true if using an periodic optimizer to reduce simulation time. Set to false if using a continuous optimizer.</param>
-        void PublishStart(bool allowFastSimulation);
+        void PublishStart(StartSimulationMessage message);
 
         /// <summary>
         /// Called when a problem is received

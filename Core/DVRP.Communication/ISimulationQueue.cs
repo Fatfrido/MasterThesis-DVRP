@@ -22,7 +22,7 @@ namespace DVRP.Communication
         /// <summary>
         /// Called when a optimizer requests to (re-)start the simulation
         /// </summary>
-        event EventHandler<bool> StartSimulationReceived;
+        event EventHandler<StartSimulationMessage> StartSimulationReceived;
 
         /// <summary>
         /// Called when a new <see cref="Solution"/> is received

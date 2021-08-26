@@ -1,56 +1,67 @@
 ﻿using DVRP.Domain;
+using ProtoBuf;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace DVRP.Simulaton
+namespace DVRP.Domain
 {
+    [ProtoContract]
     public class ProblemInstance
     {
         /// <summary>
         /// Capacity of each vehicle type
         /// </summary>
+        [ProtoMember(1)]
         public int[] VehicleTypeCapacity { get; set; }
 
         /// <summary>
         /// Count of available vehicles of each type
         /// </summary>
+        [ProtoMember(2)]
         public int[] VehicleTypeCount { get; set; }
 
         /// <summary>
         /// X coordinate of all locations including depot (at 0)
         /// </summary>
+        [ProtoMember(3)]
         public int[] XLocations { get; set; }
 
         /// <summary>
         /// Y coordinate of all locations including depot (at 0)
         /// </summary>
+        [ProtoMember(4)]
         public int[] YLocations { get; set; }
 
         /// <summary>
         /// Demand for every request
         /// </summary>
+        [ProtoMember(5)]
         public int[] Demands { get; set; }
 
         /// <summary>
         /// Time in seconds after which the request is available. 0 means it is available right at the beginning
         /// </summary>
+        [ProtoMember(6)]
         public int[] Available { get; set; }
 
         /// <summary>
         /// Time needed to service a customer
         /// </summary>
+        [ProtoMember(7)]
         public double ServiceTime { get; set; }
 
         /// <summary>
         /// Seconds per distance unit
         /// </summary>
+        [ProtoMember(8)]
         public double Speed { get; set; }
 
         /// <summary>
         /// Name of the instance
         /// </summary>
+        [ProtoMember(9)]
         public string Name { get; set; }
 
         /// <summary>

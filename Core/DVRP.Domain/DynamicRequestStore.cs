@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DVRP.Simulaton
+namespace DVRP.Domain
 {
     /// <summary>
     /// Makes dynamic requests easier to use

@@ -46,48 +46,76 @@ namespace DVRP.Optimizer
                 simulationResults.Add(results);
             };
 
-            InitializeOptimizer(optimizerConfig.Optimizer, config);
-
-            // Settings depending in the optimizer type
-            if(PeriodicOptimizer != null) {
-                allowFastSimulation = true; // Simulation speed will be increased if the optimizer is not busy
-                queue.ProblemReceived += (sender, problem) => PublishSolution(null, PeriodicOptimizer.Solve(problem));
-            } else {
-                queue.ProblemReceived += (sender, problem) => ContinuousOptimizer.HandleNewProblem(problem);
-            }
-
             Thread.Sleep(1000); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
+
+            var executionPlanJson = File.ReadAllText(optimizerConfig.ExecutionPlan);
+            var executionPlan = JsonConvert.DeserializeObject<ExecutionPlan[]>(executionPlanJson);
 
             Console.WriteLine("Optimizer is ready");
 
-            // Run multiple simulations as defined in appsettings
-            for (int i = 0; i < optimizerConfig.Iterations; i++) {
-                // Create actual optimizer
-                if(i < 1) {
-                    InitializeOptimizer(optimizerConfig.Optimizer, config);
+            // Execute plan
+            foreach(var entry in executionPlan) {
+                Console.WriteLine($">>> Executing {entry}");
+
+                var problemInstanceJson = File.ReadAllText($"instances/{entry.ProblemInstance}.json");
+                var problemInstance = JsonConvert.DeserializeObject<ProblemInstance>(problemInstanceJson);
+
+                // Run multiple simulations as defined in appsettings
+                for (int i = 0; i < entry.Iterations; i++) {
+                    Console.WriteLine($"Iteration {i + 1}");
+
+                    // Create actual optimizer
+                    InitializeOptimizer(entry.Optimizer, config);
+
+                    // Settings depending in the optimizer type
+                    RegisterEventHandlers();
+
+                    // Start simulation
+                    finished = false;
+                    queue.PublishStart(new StartSimulationMessage(allowFastSimulation, problemInstance));
+
+                    while (!finished) {
+                        Thread.Sleep(200);
+                    }
+
+                    // Remove event handlers
+                    ClearEventHandlers();
+
+                    // Remove optimizer
+                    ContinuousOptimizer = null;
+                    PeriodicOptimizer = null;
                 }
 
-                // Start simulation
-                finished = false;
-                queue.PublishStart(allowFastSimulation);
+                Directory.CreateDirectory($"results/{problemInstance.Name}");
+                File.WriteAllText($"results/{problemInstance.Name}/{problemInstance.Name}-{entry.Optimizer}.json", 
+                    JsonConvert.SerializeObject(new Report(simulationResults)));
 
-                while (!finished) {
-                    Thread.Sleep(200);
-                }
+                var instance = simulationResults.First().Instance;
+                Directory.CreateDirectory($"results/{instance}");
+                File.WriteAllText($"results/{instance}/{instance}-{entry.Optimizer}.json", JsonConvert.SerializeObject(new Report(simulationResults)));
             }
 
-            // Print results
-            Console.WriteLine("====== RESULTS =====");
-            foreach(var res in simulationResults) {
-                Console.WriteLine($"Executed solution with score {res.Cost}:");
-                Console.WriteLine(res.Solution);
-            }
-
-            var instance = simulationResults.First().Instance;
-            Directory.CreateDirectory($"results/{instance}");
-            File.WriteAllText($"results/{instance}/{instance}-{optimizerConfig.Optimizer}.json", JsonConvert.SerializeObject(new Report(simulationResults)));
+            Console.WriteLine("Finished execution plan");
 
             Console.ReadKey();
+        }
+
+        private static void RegisterEventHandlers() {
+            if (PeriodicOptimizer != null) {
+                allowFastSimulation = true; // Simulation speed will be increased if the optimizer is not busy
+                queue.ProblemReceived += HandleProblemReceivedPeriodic;
+            } else {
+                allowFastSimulation = false;
+                queue.ProblemReceived += HandleProblemReceivedContinuous;
+            }
+        }
+
+        private static void ClearEventHandlers() {
+            if (PeriodicOptimizer != null) {
+                queue.ProblemReceived -= HandleProblemReceivedPeriodic;
+            } else {
+                queue.ProblemReceived -= HandleProblemReceivedContinuous;
+            }
         }
 
         private static void InitializeOptimizer(string optimizer, IConfigurationRoot root) {
@@ -117,6 +145,14 @@ namespace DVRP.Optimizer
                     ContinuousOptimizer.NewBestSolutionFound += PublishSolution;
                     break;
             }
+        }
+
+        private static void HandleProblemReceivedPeriodic(object sender, Problem problem) {
+            PublishSolution(null, PeriodicOptimizer.Solve(problem));
+        }
+
+        private static void HandleProblemReceivedContinuous(object sender, Problem problem) {
+            ContinuousOptimizer.HandleNewProblem(problem);
         }
 
         /// <summary>

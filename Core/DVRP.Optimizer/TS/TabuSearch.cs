@@ -96,7 +96,7 @@ namespace DVRP.Optimizer
             solution.ApplyMapping(problem.Mapping);
 
             // print solution after mapping
-            Console.WriteLine(solution);
+            //Console.WriteLine(solution);
 
             return solution;
         }

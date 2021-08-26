@@ -8,6 +8,5 @@ namespace DVRP.Simulaton
     {
         public string PublishConnectionString { get; set; }
         public string SubscribeConnectionString { get; set; }
-        public string ProblemInstanceName { get; set; }
     }
 }

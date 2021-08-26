@@ -1,0 +1,12 @@
+[
+{
+	"ProblemInstance": "c50",
+	"Optimizer": "AntColonySystem",
+	"Iterations": 2
+},
+{
+	"ProblemInstance": "c50",
+	"Optimizer": "TabuSearch",
+	"Iterations": 2
+}
+]

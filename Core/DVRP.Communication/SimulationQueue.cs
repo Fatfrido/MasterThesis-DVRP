@@ -13,7 +13,7 @@ namespace DVRP.Communication
         private PublisherSocket pubSocket;
         private SubscriberSocket subSocket;
 
-        public event EventHandler<bool> StartSimulationReceived = delegate { };
+        public event EventHandler<StartSimulationMessage> StartSimulationReceived = delegate { };
         public event EventHandler<Solution> SolutionReceived = delegate { };
 
         public SimulationQueue(string pubConnection, string subConnection) {
@@ -54,7 +54,7 @@ namespace DVRP.Communication
                             break;
                         case Channel.Start:
                             Console.WriteLine("<<<<<<<<<< start");
-                            StartSimulationReceived(this, message.Deserialize<bool>());
+                            StartSimulationReceived(this, message.Deserialize<StartSimulationMessage>());
                             break;
                     }
                 }

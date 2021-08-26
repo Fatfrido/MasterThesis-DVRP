@@ -13,7 +13,6 @@ namespace DVRP.Simulaton
         private DynamicRequestStore dynamicRequests;
 
         private Domain.Request depot;
-        private ProblemInstance problemInstance;
         private int vehicleCount;
 
         private int realTimeEnforcer = 0;
@@ -28,9 +27,8 @@ namespace DVRP.Simulaton
 
         public WorldState WorldState { get; set; }
 
-        public DVRP(ISimulationQueue queue, ProblemInstance dvrp) {
+        public DVRP(ISimulationQueue queue) {
             eventQueue = queue;
-            problemInstance = dvrp;
         }
 
         private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
@@ -179,19 +177,19 @@ namespace DVRP.Simulaton
         /// Starts the simulation
         /// </summary>
         /// <param name="rseed">Random seed for the simulation</param>
-        public void Simulate(bool allowFastSimulation, int rseed = 42) {
+        public void Simulate(StartSimulationMessage startMessage, int rseed = 42) {
             env = new PseudoRealtimeSimulation(DateTime.Now, rseed);
-            this.allowFastSimulation = allowFastSimulation;
+            this.allowFastSimulation = startMessage.AllowFastSimulation;
 
             // load problem instance
-            depot = new Domain.Request(problemInstance.XLocations[0], problemInstance.YLocations[0], 0, 0);
-            problemInstance.GetRequests(out var initialRequests, out dynamicRequests);
+            depot = new Domain.Request(startMessage.ProblemInstance.XLocations[0], startMessage.ProblemInstance.YLocations[0], 0, 0);
+            startMessage.ProblemInstance.GetRequests(out var initialRequests, out dynamicRequests);
 
             // Register event handler
             eventQueue.SolutionReceived += HandleSolution;
 
             // Get vehicle count
-            var vehicleTypes = problemInstance.GetVehicleTypes();
+            var vehicleTypes = startMessage.ProblemInstance.GetVehicleTypes();
             vehicleCount = vehicleTypes.Sum(x => x.VehicleCount);
 
             // Create world state
@@ -208,7 +206,8 @@ namespace DVRP.Simulaton
             pipes = Enumerable.Range(0, vehicleCount).Select(x => new Store(env)).ToArray();
 
             // create vehicles
-            vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, pipes[x], x, requestPipe, WorldState, problemInstance.Speed, problemInstance.ServiceTime)).ToArray();
+            vehicles = Enumerable.Range(0, vehicleCount).Select(x => new Vehicle(env, pipes[x], x, requestPipe, WorldState,
+                startMessage.ProblemInstance.Speed, startMessage.ProblemInstance.ServiceTime)).ToArray();
 
             // Run simulation
             env.Run();
@@ -223,7 +222,7 @@ namespace DVRP.Simulaton
             //Console.WriteLine(WorldState.GetFinalSolution());
             Console.WriteLine($"Final cost: {WorldState.EvaluateCurrentSolution()}");
 
-            eventQueue.Publish(new SimulationResult(finalSolution, cost, problemInstance.Name));
+            eventQueue.Publish(new SimulationResult(finalSolution, cost, startMessage.ProblemInstance.Name));
 
             //Console.ReadKey();
         }

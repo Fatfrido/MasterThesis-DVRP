@@ -29,13 +29,13 @@ namespace DVRP.Communication
         }
 
         public void Publish(Solution solution) {
-            Console.WriteLine(">>>>>>>>>>>> solution");
+            //Console.WriteLine(">>>>>>>>>>>> solution");
             pubSocket.SendMoreFrame(Channel.Solution.ToString()).SendFrame(solution.Serialize());
         }
 
-        public void PublishStart(bool allowFastSimulation) {
-            Console.WriteLine(">>>>>>>>>>>> start");
-            pubSocket.SendMoreFrame(Channel.Start.ToString()).SendFrame(allowFastSimulation.Serialize());
+        public void PublishStart(StartSimulationMessage message) {
+            //Console.WriteLine(">>>>>>>>>>>> start");
+            pubSocket.SendMoreFrame(Channel.Start.ToString()).SendFrame(message.Serialize());
         }
 
         private void HandleEventIn() {
@@ -47,7 +47,7 @@ namespace DVRP.Communication
 
                     switch (topic) {
                         case Channel.Problem:
-                            Console.WriteLine("<<<<<<<<<<<<< problem");
+                            //Console.WriteLine("<<<<<<<<<<<<< problem");
                             ProblemReceived(this, message.Deserialize<Problem>());
                             break;
                         case Channel.SimulationResult:

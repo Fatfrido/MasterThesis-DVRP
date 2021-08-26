@@ -8,7 +8,6 @@ namespace DVRP.Optimizer
     {
         public string PublishConnectionString { get; set; }
         public string SubscribeConnectionString { get; set; }
-        public int Iterations { get; set; }
-        public string Optimizer { get; set; }
+        public string ExecutionPlan { get; set; }
     }
 }
