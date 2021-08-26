@@ -49,6 +49,11 @@ namespace DVRP.Simulaton
         public double Speed { get; set; }
 
         /// <summary>
+        /// Name of the instance
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="initialRequests"></param>
@@ -96,10 +101,14 @@ namespace DVRP.Simulaton
             return vehicleTypes;
         }
 
+        /// <summary>
+        /// Deep clones the problem instance
+        /// </summary>
+        /// <returns></returns>
         public ProblemInstance Clone() {
             var clone = new ProblemInstance();
             
-            // Deep copy
+            // Deep clone
             clone.Available = Available.ToArray();
             clone.Demands = Demands.ToArray();
             clone.ServiceTime = ServiceTime;
@@ -108,6 +117,7 @@ namespace DVRP.Simulaton
             clone.VehicleTypeCount = VehicleTypeCount.ToArray();
             clone.XLocations = XLocations.ToArray();
             clone.YLocations = YLocations.ToArray();
+            clone.Name = new string(Name);
 
             return clone;
         }

@@ -15,7 +15,13 @@ namespace DynamicInstanceGenerator
             var json = File.ReadAllText(args[0]);
             var problem = JsonConvert.DeserializeObject<ProblemInstance>(json);
 
-            ModifyAndExport(problem, 0.5, 100, 150, "test");
+            ModifyAndExport(problem, 0.2, 1, 360, $"{problem.Name}-low-balanced");
+            ModifyAndExport(problem, 0.5, 1, 360, $"{problem.Name}-medium-balanced");
+            ModifyAndExport(problem, 0.9, 1, 360, $"{problem.Name}-high-balanced");
+
+            ModifyAndExport(problem, 0.5, 1, 21, $"{problem.Name}-medium-clustered-soon");
+            ModifyAndExport(problem, 0.5, 170, 190, $"{problem.Name}-medium-clustered-medium");
+            ModifyAndExport(problem, 0.5, 340, 360, $"{problem.Name}-medium-clustered-late");
         }
 
         /// <summary>
@@ -30,6 +36,8 @@ namespace DynamicInstanceGenerator
             var dynamicRequestCount = (int) Math.Ceiling(problem.Available.Length * dod);
 
             var clone = problem.Clone();
+
+            clone.Name = name;
 
             // https://stackoverflow.com/questions/35065764/select-n-records-at-random-from-a-set-of-n
             for (int i = 0; i < clone.Available.Length; i++) {

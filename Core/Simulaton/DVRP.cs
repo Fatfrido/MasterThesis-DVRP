@@ -10,7 +10,6 @@ namespace DVRP.Simulaton
 {
     public class DVRP
     {
-        //private Dictionary<int, Domain.Request> dynamicRequests;
         private DynamicRequestStore dynamicRequests;
 
         private Domain.Request depot;
@@ -36,12 +35,13 @@ namespace DVRP.Simulaton
 
         private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
             env.Log("Publish initial problem");
-            //Thread.Sleep(500); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
             PublishProblem(env, WorldState.ToProblem());
 
+            var time = 0;
             foreach (var entry in dynamicRequests.GetRequests()) {
                 // Wait
-                yield return env.Timeout(TimeSpan.FromSeconds(entry.Item1));
+                yield return env.Timeout(TimeSpan.FromSeconds(entry.Item1 - time));
+                time = entry.Item1;
                 
                 // Add new requests
                 foreach(var request in entry.Item2) {
@@ -220,10 +220,10 @@ namespace DVRP.Simulaton
             var finalSolution = WorldState.GetFinalSolution();
             var cost = WorldState.EvaluateCurrentSolution();
 
-            Console.WriteLine(WorldState.GetFinalSolution());
+            //Console.WriteLine(WorldState.GetFinalSolution());
             Console.WriteLine($"Final cost: {WorldState.EvaluateCurrentSolution()}");
 
-            eventQueue.Publish(new SimulationResult(finalSolution, cost));
+            eventQueue.Publish(new SimulationResult(finalSolution, cost, problemInstance.Name));
 
             //Console.ReadKey();
         }

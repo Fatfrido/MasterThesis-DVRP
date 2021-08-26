@@ -15,10 +15,14 @@ namespace DVRP.Communication
         [ProtoMember(2)]
         public double Cost { get; set; }
 
+        [ProtoMember(3)]
+        public string Instance { get; set; }
+
         public SimulationResult() { }
-        public SimulationResult(Solution solution, double cost) {
+        public SimulationResult(Solution solution, double cost, string instance) {
             Solution = solution;
             Cost = cost;
+            Instance = instance;
         }
     }
 }

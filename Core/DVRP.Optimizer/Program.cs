@@ -56,7 +56,7 @@ namespace DVRP.Optimizer
                 queue.ProblemReceived += (sender, problem) => ContinuousOptimizer.HandleNewProblem(problem);
             }
 
-            Thread.Sleep(1000); // TODO wait until connection is ready
+            Thread.Sleep(1000); // TODO: this is very ugly => https://stackoverflow.com/questions/11634830/zeromq-always-loses-the-first-message/11654892
 
             Console.WriteLine("Optimizer is ready");
 
@@ -83,7 +83,9 @@ namespace DVRP.Optimizer
                 Console.WriteLine(res.Solution);
             }
 
-            File.WriteAllText($"results/{optimizerConfig.Optimizer}.json", JsonConvert.SerializeObject(new Report(simulationResults)));
+            var instance = simulationResults.First().Instance;
+            Directory.CreateDirectory($"results/{instance}");
+            File.WriteAllText($"results/{instance}/{instance}-{optimizerConfig.Optimizer}.json", JsonConvert.SerializeObject(new Report(simulationResults)));
 
             Console.ReadKey();
         }
