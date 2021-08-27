@@ -11,5 +11,6 @@ namespace DVRP.Optimizer.GA
         public double MutationRate { get; set; }
         public int Elites { get; set; }
         public int InitialIterations { get; set; }
+        public double RandomInsertionRate { get; set; }
     }
 }

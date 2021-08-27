@@ -12,7 +12,6 @@ namespace DVRP.Domain
         /// Value is a request and the key it's id
         /// Used to evaluate the final cost
         /// </summary>
-        //public Dictionary<int, Request> History { get; private set; }
         public History History { get; private set; }
 
         /// <summary>

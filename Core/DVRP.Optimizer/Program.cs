@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -52,6 +53,8 @@ namespace DVRP.Optimizer
             var executionPlan = JsonConvert.DeserializeObject<ExecutionPlan[]>(executionPlanJson);
 
             Console.WriteLine("Optimizer is ready");
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
 
             // Execute plan
             foreach(var entry in executionPlan) {
@@ -80,10 +83,6 @@ namespace DVRP.Optimizer
 
                     // Remove event handlers
                     ClearEventHandlers();
-
-                    // Remove optimizer
-                    ContinuousOptimizer = null;
-                    PeriodicOptimizer = null;
                 }
 
                 Directory.CreateDirectory($"results/{problemInstance.Name}");
@@ -93,9 +92,12 @@ namespace DVRP.Optimizer
                 var instance = simulationResults.First().Instance;
                 Directory.CreateDirectory($"results/{instance}");
                 File.WriteAllText($"results/{instance}/{instance}-{entry.Optimizer}.json", JsonConvert.SerializeObject(new Report(simulationResults)));
+
+                simulationResults.Clear();
             }
 
-            Console.WriteLine("Finished execution plan");
+            stopwatch.Stop();
+            Console.WriteLine($"Finished execution plan in {stopwatch.Elapsed.TotalMinutes} minutes");
 
             Console.ReadKey();
         }
@@ -132,16 +134,19 @@ namespace DVRP.Optimizer
                     break;
                 case Optimizer.AntColonySystem:
                     var acsConfig = section.Get<AntColonySystemConfig>();
-                    PeriodicOptimizer = new AntColonySystem(acsConfig.Iterations, acsConfig.Ants, acsConfig.EvaporationRate, acsConfig.PheromoneImportance, 100, 0.3, 0.9);
+                    PeriodicOptimizer = new AntColonySystem(acsConfig.Iterations, acsConfig.Ants, acsConfig.EvaporationRate, acsConfig.PheromoneImportance, 
+                        acsConfig.LocalSearchIterations, acsConfig.PheromoneConservation, acsConfig.ExploitationImportance);
                     break;
                 case Optimizer.GeneticAlgorithm:
                     var gaConfig = section.Get<GeneticAlgorithmConfig>();
                     
                     if(ContinuousOptimizer != null) {
                         ContinuousOptimizer.NewBestSolutionFound -= PublishSolution;
+                        ContinuousOptimizer.Stop();
                     }
 
-                    ContinuousOptimizer = new GeneticAlgorithm(gaConfig.PopulationSize, gaConfig.KTournament, gaConfig.InitialIterations, gaConfig.Elites, gaConfig.MutationRate);
+                    ContinuousOptimizer = new GeneticAlgorithm(gaConfig.PopulationSize, gaConfig.KTournament, gaConfig.InitialIterations, gaConfig.Elites, 
+                        gaConfig.MutationRate, gaConfig.RandomInsertionRate);
                     ContinuousOptimizer.NewBestSolutionFound += PublishSolution;
                     break;
             }
@@ -152,7 +157,7 @@ namespace DVRP.Optimizer
         }
 
         private static void HandleProblemReceivedContinuous(object sender, Problem problem) {
-            ContinuousOptimizer.HandleNewProblem(problem);
+            ContinuousOptimizer?.HandleNewProblem(problem);
         }
 
         /// <summary>

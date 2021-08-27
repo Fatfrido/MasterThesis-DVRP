@@ -10,6 +10,9 @@ namespace DVRP.Optimizer.GA
 {
     public class GeneticAlgorithm : IContinuousOptimizer
     {
+        private static int InstanceCounter = 0;
+        private int instance = -1;
+
         public event EventHandler<Solution> NewBestSolutionFound;
 
         private Problem problem;
@@ -18,26 +21,28 @@ namespace DVRP.Optimizer.GA
         private int initialIterations;
         private int elites;
         private double mutationProbability;
+        private double randomInsertionRate;
         private Random random = new Random();
 
         private Individual[] population;
         private Task optimizationTask;
         private CancellationTokenSource tokenSource;
 
-        public GeneticAlgorithm(int populationSize, int k, int initialIterations, int elites, double mutationProbability) {
+        public GeneticAlgorithm(int populationSize, int k, int initialIterations, int elites, double mutationProbability, double randomInsertionRate) {
             this.populationSize = populationSize;
             this.k = k;
             this.initialIterations = initialIterations;
             this.elites = elites;
             this.mutationProbability = mutationProbability;
+            this.randomInsertionRate = randomInsertionRate;
+
+            instance = InstanceCounter;
+            InstanceCounter++;
         }
 
         public void HandleNewProblem(Problem problem) {
             // Stop current execution
-            if(optimizationTask != null) {
-                tokenSource.Cancel();
-                optimizationTask.Wait();
-            }
+            Stop();
 
             // Update population
             if(population == null) {
@@ -53,6 +58,13 @@ namespace DVRP.Optimizer.GA
             // Find solutions
             tokenSource = new CancellationTokenSource();
             optimizationTask = Task.Run(() => Run(initialIterations, elites, mutationProbability, tokenSource.Token));
+        }
+
+        public void Stop() {
+            if (optimizationTask != null) {
+                tokenSource.Cancel();
+                optimizationTask.Wait();
+            }
         }
 
         /// <summary>
@@ -87,7 +99,11 @@ namespace DVRP.Optimizer.GA
                     individual.RemoveRequests(toRemove.ToArray());
 
                     foreach (var request in toAdd) {
-                        individual.InsertRequest(request, newProblem);
+                        if(random.NextDouble() < randomInsertionRate) {
+                            individual.InsertRequestRandom(request, newProblem);
+                        } else {
+                            individual.InsertRequest(request, newProblem);
+                        }
                     }
                 }
             }
@@ -104,7 +120,7 @@ namespace DVRP.Optimizer.GA
 
             // Sort (to get elites later on)
             population = population.OrderByDescending(x => x.Fitness).ToArray();
-
+            
             while (!token.IsCancellationRequested && problem.Requests.Length > 0) {
                 var childPopulation = new List<Individual>();
 
@@ -143,10 +159,11 @@ namespace DVRP.Optimizer.GA
                 population = population.OrderByDescending(x => x.Fitness).ToArray();
 
                 // Do not publish the result of the first few iterations
-                if(initialIterations > 0) {
+                if (initialIterations > 0) {
                     initialIterations--;
                 }
 
+                Console.WriteLine($"[{InstanceCounter}] Best solution: {population[0].Fitness}, Worst Solution: {population[populationSize - 1].Fitness}");
                 if(population[0].Fitness > bestSolutionFitness && initialIterations <= 0) {
                     var res = population[0].ToSolution(problem);
                     bestSolutionFitness = population[0].Fitness;

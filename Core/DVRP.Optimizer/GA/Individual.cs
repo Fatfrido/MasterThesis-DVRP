@@ -57,6 +57,15 @@ namespace DVRP.Optimizer.GA
             RouteChromosome = bestChromosome;
         }
 
+        public void InsertRequestRandom(int request, Problem problem) {
+            // Find the best position to insert the new request
+            var bestFitness = -1.0;
+            Chromosome bestChromosome = null;
+
+            var index = random.Next(0, RouteChromosome.Length);
+            RouteChromosome = RouteChromosome.Insert(index, request);
+        }
+
         /// <summary>
         /// Applies the partially mapped crossover to both chromosomes
         /// </summary>

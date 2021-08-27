@@ -14,5 +14,10 @@ namespace DVRP.Optimizer
         void HandleNewProblem(Problem problem);
 
         event EventHandler<Solution> NewBestSolutionFound;
+
+        /// <summary>
+        /// Stops the optimization if it is currently running
+        /// </summary>
+        void Stop();
     }
 }

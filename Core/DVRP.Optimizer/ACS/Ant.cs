@@ -18,9 +18,9 @@ namespace DVRP.Optimizer.ACS
 
         public Ant(Problem problem, PheromoneMatrix pheromoneMatrix, long[,] costMatrix, double pheromoneImportance, int localSearchIterations, double exploitationImportance) {
             this.problem = problem;
+            this.pheromoneMatrix = pheromoneMatrix;
             this.costMatrix = costMatrix;
             this.pheromoneImportance = pheromoneImportance;
-            this.pheromoneMatrix = pheromoneMatrix;
             this.localSearchIterations = localSearchIterations;
             this.exploitationImportance = exploitationImportance;
         }

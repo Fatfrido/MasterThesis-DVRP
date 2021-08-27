@@ -90,19 +90,8 @@ namespace DVRP.Optimizer.GA
                 to += point1;
             }
 
-            // Invert sequence between the two cut points
-
-            // Create new sequence
-            var newSequence = new List<int>();
-            for(int i = from; i < to; i++) {
-                newSequence.Prepend(Data[i]);
-            }
-
-            // Apply new sequence
-            foreach(var gene in newSequence) {
-                Data[from] = gene;
-                from++;
-            }
+            // Reverse sequence between the two cut points
+            Array.Reverse(Data, from, to - from);
         }
 
         public Chromosome PartiallyMappedCrossover(Chromosome other) {

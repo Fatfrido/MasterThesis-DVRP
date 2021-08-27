@@ -12,5 +12,7 @@ namespace DVRP.Optimizer.ACS
         public double PheromoneImportance { get; set; }
         public int LocalSearchIterations { get; set; }
         public double PheromoneConservation { get; set; }
+
+        public double ExploitationImportance { get; set; }
     }
 }

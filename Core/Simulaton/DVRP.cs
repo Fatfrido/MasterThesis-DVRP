@@ -180,6 +180,8 @@ namespace DVRP.Simulaton
         public void Simulate(StartSimulationMessage startMessage, int rseed = 42) {
             env = new PseudoRealtimeSimulation(DateTime.Now, rseed);
             this.allowFastSimulation = startMessage.AllowFastSimulation;
+            realTimeEnforcer = 0;
+            Console.WriteLine($"Fast simulation allowed: {allowFastSimulation}");
 
             // load problem instance
             depot = new Domain.Request(startMessage.ProblemInstance.XLocations[0], startMessage.ProblemInstance.YLocations[0], 0, 0);
@@ -223,8 +225,6 @@ namespace DVRP.Simulaton
             Console.WriteLine($"Final cost: {WorldState.EvaluateCurrentSolution()}");
 
             eventQueue.Publish(new SimulationResult(finalSolution, cost, startMessage.ProblemInstance.Name));
-
-            //Console.ReadKey();
         }
 
         /// <summary>
@@ -252,7 +252,6 @@ namespace DVRP.Simulaton
         private void EnableVirtualTime() {
             if (allowFastSimulation) {
                 realTimeEnforcer--;
-
                 // If there is no unfinished problem left
                 if (realTimeEnforcer <= 0) {
                     env.SetVirtualtime();
