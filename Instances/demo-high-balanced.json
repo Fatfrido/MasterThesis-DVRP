@@ -1,0 +1,1 @@
+{"VehicleTypeCapacity":[100,70],"VehicleTypeCount":[3,2],"XLocations":[0,12,2,20,12,4,21,10,40],"YLocations":[0,4,3,40,33,44,23,3,23],"Demands":[10,15,30,2,37,50,5,70],"Available":[115,226,108,205,273,233,147,121],"ServiceTime":1.0,"Speed":1.0,"Name":"demo-high-balanced"}

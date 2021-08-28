@@ -3,10 +3,14 @@
 	"ServiceTime": 1,
 	"Speed": 1,
 	"VehicleTypeCapacity": [
-		160
+		160,
+		200,
+		100
 	],
 	"VehicleTypeCount": [
-		50
+		25,
+		10,
+		20
 	],
     "XLocations": [
         30,

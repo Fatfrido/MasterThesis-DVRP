@@ -1,12 +1,8 @@
-christofides: gleichmäßig verteilte kunden
-taillard: cluster mit ausreißern
+christofides: equally distributed requests
 
-Grad der Dynamik:
-schwach: ~90% bekannt
-mittel:
-stark:
+c50: 50 requests
+c100: 100 requests
 
-instanz | anzahl dynamischer anfragen
-c50D_weak: 5
-c50D_medium: 
-c50D_strong: 
+low/medium/high: degree of dynamism
+balanced/clustered: distribution of dynamic requests
+soon/medium/late: when clustered requests are showing up
