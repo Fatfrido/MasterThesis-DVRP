@@ -27,51 +27,63 @@ namespace DVRP.Simulaton
 
         public WorldState WorldState { get; set; }
 
-        public DVRP(ISimulationQueue queue) {
+        public DVRP(ISimulationQueue queue)
+        {
             eventQueue = queue;
         }
 
-        private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env) {
+        private IEnumerable<Event> DynamicRequestHandler(PseudoRealtimeSimulation env)
+        {
             env.Log("Publish initial problem");
             PublishProblem(env, WorldState.ToProblem());
 
             var time = 0;
-            foreach (var entry in dynamicRequests.GetRequests()) {
+            foreach (var entry in dynamicRequests.GetRequests())
+            {
                 // Wait
                 yield return env.Timeout(TimeSpan.FromSeconds(entry.Item1 - time));
                 time = entry.Item1;
-                
+
                 // Add new requests
-                foreach(var request in entry.Item2) {
+                foreach (var request in entry.Item2)
+                {
                     Console.WriteLine(">>> New Request <<<");
                     WorldState.AddRequest(request);
                 }
-                
+
                 PublishProblem(env, WorldState.ToProblem());
             }
         }
 
-        private IEnumerable<Event> Dispatcher(PseudoRealtimeSimulation env, Store dispatcherPipe) {
+        private IEnumerable<Event> Dispatcher(PseudoRealtimeSimulation env, Store dispatcherPipe)
+        {
             // problem: dispatcher needs to be able to take initiative to give orders at the start.
             // otherwise vehicles that have no initial orders will not start to drive later if necessary!
-            while(true) {
+            while (true)
+            {
                 var get = dispatcherPipe.Get();
                 yield return get;
 
-                var vehicle = (int) get.Value;
+                var vehicle = (int)get.Value;
 
                 // Wait for initial solution
-                while (WorldState.Solution == null) {
+                while (WorldState.Solution == null)
+                {
                     Thread.Sleep(100);
                 }
 
-                if(vehicle == -1) { // A new solution is available
-                    for(int i = 0; i < vehicleCount; i++) { // for every vehicle
-                        if(vehicles[i].IsIdle) { // if there is a customer planned for the vehicle and it is not doing anything
+                if (vehicle == -1)
+                { // A new solution is available
+                    for (int i = 0; i < vehicleCount; i++)
+                    { // for every vehicle
+                        if (vehicles[i].IsIdle)
+                        { // if there is a customer planned for the vehicle and it is not doing anything
                             ApplyNextRequest(i, pipes[i], env);
                         }
                     }
-                } else {
+                }
+                else
+                {
                     ApplyNextRequest(vehicle, pipes[vehicle], env);
                 }
             }
@@ -83,14 +95,17 @@ namespace DVRP.Simulaton
         /// <param name="vehicle"></param>
         /// <param name="pipe"></param>
         /// <param name="env"></param>
-        private void ApplyNextRequest(int vehicle, Store vehiclePipe, PseudoRealtimeSimulation env) {
+        private void ApplyNextRequest(int vehicle, Store vehiclePipe, PseudoRealtimeSimulation env)
+        {
             int nextRequest;
 
-            if (WorldState.TryCommitNextRequest(vehicle, out nextRequest)) {
+            if (WorldState.TryCommitNextRequest(vehicle, out nextRequest))
+            {
                 vehiclePipe.Put(nextRequest);
-                
+
                 // Do not publish a problem without requests
-                if(WorldState.KnownRequests.Count > 0) {
+                if (WorldState.KnownRequests.Count > 0)
+                {
                     PublishProblem(env, WorldState.ToProblem());
                 }
             }
@@ -99,8 +114,9 @@ namespace DVRP.Simulaton
         /// <summary>
         /// A vehicle that drives to requests as it is told
         /// </summary>
-        public class Vehicle : ActiveObject<PseudoRealtimeSimulation> {
-            
+        public class Vehicle : ActiveObject<PseudoRealtimeSimulation>
+        {
+
             /// <summary>
             /// Identifier
             /// </summary>
@@ -126,7 +142,8 @@ namespace DVRP.Simulaton
             /// <param name="pipe">Contains the next order</param>
             /// <param name="id">Unique identifier</param>
             /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
-            public Vehicle(PseudoRealtimeSimulation env, Store pipe, int id, Store dispatcherRequest, WorldState worldState, double speed, double serviceTime, int startIdx = 0) : base(env) {
+            public Vehicle(PseudoRealtimeSimulation env, Store pipe, int id, Store dispatcherRequest, WorldState worldState, double speed, double serviceTime, int startIdx = 0) : base(env)
+            {
                 Id = id;
                 CurrentRequest = startIdx; // start at the depot
 
@@ -140,8 +157,10 @@ namespace DVRP.Simulaton
             /// <param name="pipe">Contains the next order</param>
             /// <param name="dispatcherRequest">Store where the vehicle can request an order by putting in its id</param>
             /// <returns></returns>
-            private IEnumerable<Event> Working(PseudoRealtimeSimulation env, Store vehiclePipe, Store dispatcherPipe, WorldState worldState, double speed, double serviceTime) {
-                while(true) {
+            private IEnumerable<Event> Working(PseudoRealtimeSimulation env, Store vehiclePipe, Store dispatcherPipe, WorldState worldState, double speed, double serviceTime)
+            {
+                while (true)
+                {
                     env.Log($"[{Id}] Requesting next assignment");
                     dispatcherPipe.Put(Id);
                     IsIdle = true;
@@ -151,10 +170,11 @@ namespace DVRP.Simulaton
                     yield return get;
                     IsIdle = false;
 
-                    var assignment = (int) get.Value;
+                    var assignment = (int)get.Value;
 
                     // Driving to the current position is not possible. Ignore and continue
-                    if (assignment != CurrentRequest) {
+                    if (assignment != CurrentRequest)
+                    {
                         var travelTime = worldState.CostMatrix[CurrentRequest, assignment];
                         CurrentRequest = assignment;
 
@@ -177,7 +197,8 @@ namespace DVRP.Simulaton
         /// Starts the simulation
         /// </summary>
         /// <param name="rseed">Random seed for the simulation</param>
-        public void Simulate(StartSimulationMessage startMessage, int rseed = 42) {
+        public void Simulate(StartSimulationMessage startMessage, int rseed = 42)
+        {
             env = new PseudoRealtimeSimulation(DateTime.Now, rseed);
             this.allowFastSimulation = startMessage.AllowFastSimulation;
             realTimeEnforcer = 0;
@@ -232,13 +253,15 @@ namespace DVRP.Simulaton
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="solution"></param>
-        private void HandleSolution(object sender, Solution solution) {
+        private void HandleSolution(object sender, Solution solution)
+        {
             var cost = WorldState.EvaluateSolution(solution);
 
             Console.WriteLine($"Received solution with cost: {cost}");
             //Console.WriteLine(solution);
 
-            if (WorldState.TrySetNewSolution(solution)) {
+            if (WorldState.TrySetNewSolution(solution))
+            {
                 // notify dispatcher
                 requestPipe.Put(-1);
             }
@@ -249,11 +272,14 @@ namespace DVRP.Simulaton
         /// <summary>
         /// Switches to virtual time if it is allowed to
         /// </summary>
-        private void EnableVirtualTime() {
-            if (allowFastSimulation) {
+        private void EnableVirtualTime()
+        {
+            if (allowFastSimulation)
+            {
                 realTimeEnforcer--;
                 // If there is no unfinished problem left
-                if (realTimeEnforcer <= 0) {
+                if (realTimeEnforcer <= 0)
+                {
                     env.SetVirtualtime();
                 }
             }
@@ -264,8 +290,10 @@ namespace DVRP.Simulaton
         /// </summary>
         /// <param name="env"></param>
         /// <param name="problem"></param>
-        private void PublishProblem(PseudoRealtimeSimulation env, Problem problem) {
-            if(allowFastSimulation) {
+        private void PublishProblem(PseudoRealtimeSimulation env, Problem problem)
+        {
+            if (allowFastSimulation)
+            {
                 realTimeEnforcer++;
                 env.SetRealtime();
             }

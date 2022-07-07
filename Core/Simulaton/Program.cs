@@ -10,7 +10,8 @@ namespace DVRP.Simulaton
 {
     class Program
     {
-        static void Main(string[] args) {
+        static void Main(string[] args)
+        {
             Console.WriteLine("Initializing simulation...");
 
             // Read appsettings.json
@@ -21,18 +22,20 @@ namespace DVRP.Simulaton
             var section = config.GetSection(nameof(SimulationConfig));
             var simulationConfig = section.Get<SimulationConfig>();
 
-            ISimulationQueue queue = 
+            ISimulationQueue queue =
                 new SimulationQueue(simulationConfig.PublishConnectionString, simulationConfig.SubscribeConnectionString);
 
             var sim = new DVRP(queue);
 
-            queue.StartSimulationReceived += (sender, startSimulationMessage) => {
+            queue.StartSimulationReceived += (sender, startSimulationMessage) =>
+            {
                 new Task(() => sim.Simulate(startSimulationMessage)).Start();
             };
 
             Console.WriteLine("Simulation is ready");
 
-            while (true) {
+            while (true)
+            {
                 Thread.Sleep(500);
             }
         }

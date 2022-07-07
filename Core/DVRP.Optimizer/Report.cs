@@ -13,26 +13,33 @@ namespace DVRP.Optimizer
         public int Invalid { get; set; }
         public int Iterations { get; set; }
 
-        public Report(IEnumerable<SimulationResult> results) {
+        public Report(IEnumerable<SimulationResult> results)
+        {
             Best = -1.0;
             Worst = -1.0;
             Invalid = 0;
             var sum = 0.0;
 
-            foreach(var result in results) {
+            foreach (var result in results)
+            {
                 Iterations++;
 
-                if(! (result.Cost < 0)) { // valid results
-                    if (Best < 0 || result.Cost < Best) {
+                if (!(result.Cost < 0))
+                { // valid results
+                    if (Best < 0 || result.Cost < Best)
+                    {
                         Best = result.Cost;
                     }
 
-                    if (Worst < 0 || result.Cost > Worst) {
+                    if (Worst < 0 || result.Cost > Worst)
+                    {
                         Worst = result.Cost;
                     }
 
                     sum += result.Cost;
-                } else { // invalid solution
+                }
+                else
+                { // invalid solution
                     Invalid++;
                 }
             }

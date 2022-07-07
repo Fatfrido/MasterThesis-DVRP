@@ -69,12 +69,14 @@ namespace DVRP.Domain
         /// </summary>
         /// <param name="initialRequests"></param>
         /// <param name="dynamicRequests"></param>
-        public void GetRequests(out Request[] initialRequests, out DynamicRequestStore dynamicRequests) {
+        public void GetRequests(out Request[] initialRequests, out DynamicRequestStore dynamicRequests)
+        {
             var initialRequestsList = new List<Request>();
             dynamicRequests = new DynamicRequestStore();
 
             var id = 1;
-            for(int i = 0; i < Available.Length; i++) {
+            for (int i = 0; i < Available.Length; i++)
+            {
                 var request = new Request(
                     XLocations[i + 1],
                     YLocations[i + 1],
@@ -82,11 +84,14 @@ namespace DVRP.Domain
                     -1 // the ids must be ordered by release time of a request
                     );
 
-                if (Available[i] < 1) { // available at the beginning
+                if (Available[i] < 1)
+                { // available at the beginning
                     request.Id = id;
                     initialRequestsList.Add(request);
                     id++;
-                } else { // appears dynamically
+                }
+                else
+                { // appears dynamically
                     // ids of dynamic requests will be set later
                     dynamicRequests.Add(Available[i], request);
                 }
@@ -102,10 +107,12 @@ namespace DVRP.Domain
         /// Returns the <see cref="VehicleType"/>s available in this problem
         /// </summary>
         /// <returns></returns>
-        public VehicleType[] GetVehicleTypes() {
+        public VehicleType[] GetVehicleTypes()
+        {
             var vehicleTypes = new VehicleType[VehicleTypeCapacity.Length];
-            
-            for(int i = 0; i < VehicleTypeCapacity.Length; i++) {
+
+            for (int i = 0; i < VehicleTypeCapacity.Length; i++)
+            {
                 vehicleTypes[i] = new VehicleType(VehicleTypeCapacity[i], VehicleTypeCount[i]);
             }
 
@@ -116,9 +123,10 @@ namespace DVRP.Domain
         /// Deep clones the problem instance
         /// </summary>
         /// <returns></returns>
-        public ProblemInstance Clone() {
+        public ProblemInstance Clone()
+        {
             var clone = new ProblemInstance();
-            
+
             // Deep clone
             clone.Available = Available.ToArray();
             clone.Demands = Demands.ToArray();

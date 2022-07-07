@@ -46,7 +46,8 @@ namespace DVRP.Domain
         public int[] Mapping { get; set; }
 
         public Problem() { }
-        public Problem(Request[] requests, int vehicleCount, int[] vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping) {
+        public Problem(Request[] requests, int vehicleCount, int[] vehicleCapacity, int[] start, long[,] costMatrix, int[] mapping)
+        {
             Requests = requests;
             VehicleCount = vehicleCount;
             VehicleCapacity = vehicleCapacity;
@@ -61,7 +62,8 @@ namespace DVRP.Domain
         /// <param name="requestId1">Id of a request</param>
         /// <param name="requestId2">Id of a request</param>
         /// <returns></returns>
-        public long GetCost(int requestId1, int requestId2) {
+        public long GetCost(int requestId1, int requestId2)
+        {
             var i = Array.IndexOf(Mapping, requestId1);
             var j = Array.IndexOf(Mapping, requestId2);
 
@@ -72,15 +74,17 @@ namespace DVRP.Domain
         /// Creates a mapping that maps a requestId to the corresponding index in this problem
         /// </summary>
         /// <returns></returns>
-        public Dictionary<int, int> CreateReverseMapping() {
+        public Dictionary<int, int> CreateReverseMapping()
+        {
             var idToIndexMapping = new Dictionary<int, int>();
 
             idToIndexMapping.Add(0, 0); // depot
-            for (int j = 0; j < Requests.Length; j++) {
+            for (int j = 0; j < Requests.Length; j++)
+            {
                 idToIndexMapping.Add(Requests[j].Id, j + 1); // depot is at 0/0
             }
 
             return idToIndexMapping;
         }
-}
+    }
 }

@@ -18,7 +18,8 @@ namespace DVRP.Domain
 
         public VehicleType() { }
 
-        public VehicleType(int capacity, int vehicleCount) {
+        public VehicleType(int capacity, int vehicleCount)
+        {
             Capacity = capacity;
             VehicleCount = vehicleCount;
         }

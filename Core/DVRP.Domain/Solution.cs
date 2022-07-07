@@ -14,44 +14,55 @@ namespace DVRP.Domain
 
         public Solution() { }
 
-        public Solution(int vehicleNumber) {
+        public Solution(int vehicleNumber)
+        {
             Data = new Tour[vehicleNumber];
-            for(int i = 0; i < vehicleNumber; i++) {
+            for (int i = 0; i < vehicleNumber; i++)
+            {
                 Data[i] = new Tour();
             }
         }
 
-        public void AddRoute(int vehicle, int[] route) {
+        public void AddRoute(int vehicle, int[] route)
+        {
             Data[vehicle] = new Tour(route.ToList()); // TODO use list as param??
         }
 
-        public int[] GetRoute(int vehicle) {
+        public int[] GetRoute(int vehicle)
+        {
             return Data[vehicle].Data.ToArray();
         }
 
-        public void ApplyMapping(int[] mapping) {
-            for(var i = 0; i < Data.Length; i++) {
+        public void ApplyMapping(int[] mapping)
+        {
+            for (var i = 0; i < Data.Length; i++)
+            {
                 Data[i].ApplyMapping(mapping);
             }
         }
 
-        public double Evaluate(Problem problem) {
+        public double Evaluate(Problem problem)
+        {
             var sum = 0.0;
 
-            foreach(var tour in Data) {
+            foreach (var tour in Data)
+            {
                 sum += tour.GetCost(problem);
             }
 
             return sum;
         }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             var sb = new StringBuilder();
 
             sb.Append(">>> SOLUTION").AppendLine();
 
-            for(int i = 0; i < Data.GetLength(0); i++) { // vehicles
-                if(Data[i] != null) {
+            for (int i = 0; i < Data.GetLength(0); i++)
+            { // vehicles
+                if (Data[i] != null)
+                {
                     sb.Append($"[vehicle {i}] ")
                         .Append(Data[i])
                         .AppendLine();

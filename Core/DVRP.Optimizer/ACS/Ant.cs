@@ -16,7 +16,8 @@ namespace DVRP.Optimizer.ACS
         private int localSearchIterations;
         private double exploitationImportance;
 
-        public Ant(Problem problem, PheromoneMatrix pheromoneMatrix, long[,] costMatrix, double pheromoneImportance, int localSearchIterations, double exploitationImportance) {
+        public Ant(Problem problem, PheromoneMatrix pheromoneMatrix, long[,] costMatrix, double pheromoneImportance, int localSearchIterations, double exploitationImportance)
+        {
             this.problem = problem;
             this.pheromoneMatrix = pheromoneMatrix;
             this.costMatrix = costMatrix;
@@ -29,7 +30,8 @@ namespace DVRP.Optimizer.ACS
         /// Calculates a feasible solution
         /// </summary>
         /// <returns></returns>
-        public Solution FindSolution() {
+        public Solution FindSolution()
+        {
             var initialSolution = BuildInitialSolution(problem);
             initialSolution.Cost = Evaluate(initialSolution, problem);
 
@@ -41,11 +43,12 @@ namespace DVRP.Optimizer.ACS
         /// </summary>
         /// <param name="vehicleCount"></param>
         /// <returns></returns>
-        private Solution BuildInitialSolution(Problem problem) {
+        private Solution BuildInitialSolution(Problem problem)
+        {
             var solution = new Solution(problem.VehicleCount);
             var route = new List<int>();
             var length = problem.Requests.Length + problem.VehicleCount; // the total length of a solution (includes dummy depots but not the real depot)
-            
+
             var currentRequestIdx = 0;
             var nextRequest = 0;
 
@@ -54,25 +57,30 @@ namespace DVRP.Optimizer.ACS
 
             // store already visited locations
             var status = new bool[length];
-            
+
             // Add start dummy depot
             status[0] = true;
             route.Add(currentRequestIdx);
 
-            for(int i = 0; i < length - 1; i++) {
+            for (int i = 0; i < length - 1; i++)
+            {
                 // Find valid options
                 var options = new List<int>();
 
-                for(int j = 0; j < status.Length; j++) {
-                    if(status[j] == false) { // each request is visited exactly once 
+                for (int j = 0; j < status.Length; j++)
+                {
+                    if (status[j] == false)
+                    { // each request is visited exactly once 
                         // check capacity constraint for normal requests (not dummy depots)
-                        if(j < problem.VehicleCount || vehicleCapacity - problem.Requests[j - problem.VehicleCount].Amount >= 0) {
+                        if (j < problem.VehicleCount || vehicleCapacity - problem.Requests[j - problem.VehicleCount].Amount >= 0)
+                        {
                             options.Add(j);
                         }
                     }
                 }
 
-                if(options.Count < 1) { // no more feasible option available
+                if (options.Count < 1)
+                { // no more feasible option available
                     return BuildInitialSolution(problem);
                 }
 
@@ -80,7 +88,8 @@ namespace DVRP.Optimizer.ACS
                 var attractivenessSum = 0.0;
                 var attractiveness = new Dictionary<int, double>(options.Count());
 
-                foreach (var option in options) {
+                foreach (var option in options)
+                {
                     var cost = costMatrix[currentRequestIdx + 1, option + 1];
 
                     if (cost <= 0) // make sure to not divide by 0
@@ -97,20 +106,25 @@ namespace DVRP.Optimizer.ACS
                 var maxP = 0.0;
                 var maxOption = 0;
 
-                foreach (var option in options) {
+                foreach (var option in options)
+                {
                     var p = attractiveness[option] / attractivenessSum;
                     probabilities[option] = p;
-                    
-                    if(p > maxP) {
+
+                    if (p > maxP)
+                    {
                         maxP = p;
                         maxOption = option;
                     }
                 }
 
                 // Select the option with the highest probability with probability exploitationImportance (q)
-                if(random.NextDouble() < exploitationImportance) {
+                if (random.NextDouble() < exploitationImportance)
+                {
                     nextRequest = maxOption;
-                } else {
+                }
+                else
+                {
                     nextRequest = SelectRandomCustomer(probabilities);
                 }
 
@@ -120,10 +134,13 @@ namespace DVRP.Optimizer.ACS
                 pheromoneMatrix.LocalUpdate(currentRequestIdx, nextRequest, problem);
 
                 // Check if a dummy depot has been selected
-                if(nextRequest < problem.VehicleCount) {
+                if (nextRequest < problem.VehicleCount)
+                {
                     vehicle = nextRequest;
                     vehicleCapacity = problem.VehicleCapacity[vehicle];
-                } else { // update available vehicle capacity
+                }
+                else
+                { // update available vehicle capacity
                     vehicleCapacity -= problem.Requests[nextRequest - problem.VehicleCount].Amount;
                 }
 
@@ -142,12 +159,14 @@ namespace DVRP.Optimizer.ACS
         /// <param name="problem"></param>
         /// <param name="maxComputationTime"></param>
         /// <returns></returns>
-        private Solution LocalSearch(Solution initialSolution, Problem problem, int iterations) {
+        private Solution LocalSearch(Solution initialSolution, Problem problem, int iterations)
+        {
             // find best solution with local search
             var bestSolution = initialSolution;
             var i = 0;
 
-            while(i < iterations) {
+            while (i < iterations)
+            {
                 // Try to place a request at a different position
                 var fromIndex = random.Next(1, bestSolution.Route.Length - 1);
                 var toIndex = random.Next(1, bestSolution.Route.Length - 1);
@@ -155,7 +174,8 @@ namespace DVRP.Optimizer.ACS
                 var solution = bestSolution.MoveRequest(fromIndex, toIndex);
                 solution.Cost = Evaluate(solution, problem);
 
-                if(solution.IsValid() && solution.Cost < bestSolution.Cost) {
+                if (solution.IsValid() && solution.Cost < bestSolution.Cost)
+                {
                     bestSolution = solution;
                     //Console.WriteLine($"[Ant] Found personal best: {bestSolution.Cost}");
                 }
@@ -172,7 +192,8 @@ namespace DVRP.Optimizer.ACS
         /// <param name="probabilities"></param>
         /// <returns></returns>
         // see: https://stackoverflow.com/questions/38086513/selecting-random-item-from-list-given-probability-of-each-item
-        private int SelectRandomCustomer(IDictionary<int, double> probabilities) {
+        private int SelectRandomCustomer(IDictionary<int, double> probabilities)
+        {
             // calc universial probability
             var universialProbability = probabilities.Sum(pair => pair.Value);
 
@@ -180,9 +201,11 @@ namespace DVRP.Optimizer.ACS
             var rand = random.NextDouble() * universialProbability;
 
             double sum = 0;
-            foreach(var p in probabilities) {
+            foreach (var p in probabilities)
+            {
                 // loop until the random number is less than our cumulative probability
-                if(rand <= (sum = sum + p.Value)) {
+                if (rand <= (sum = sum + p.Value))
+                {
                     return p.Key;
                 }
             }
@@ -197,9 +220,11 @@ namespace DVRP.Optimizer.ACS
         /// <param name="solution"></param>
         /// <param name="problem"></param>
         /// <returns></returns>
-        private double Evaluate(Solution solution, Problem problem) {
+        private double Evaluate(Solution solution, Problem problem)
+        {
             // infeasible solution if it does not start with a dummy depot
-            if(! solution.IsDummyDepot(0)) {
+            if (!solution.IsDummyDepot(0))
+            {
                 return -1;
             }
 
@@ -210,9 +235,11 @@ namespace DVRP.Optimizer.ACS
             var lastRequest = solution.Route[0];
             var visited = new bool[problem.Requests.Length];
 
-            for(int i = 1; i < solution.Route.Length; i++) {
+            for (int i = 1; i < solution.Route.Length; i++)
+            {
                 // check if current request is a dummy depot
-                if(solution.IsDummyDepot(i)) {
+                if (solution.IsDummyDepot(i))
+                {
                     // return current vehicle back to depot
                     cost += costMatrix[lastRequest, 0];
 
@@ -220,12 +247,15 @@ namespace DVRP.Optimizer.ACS
                     vehicle = solution.Route[i];
                     currCapacity = problem.VehicleCapacity[vehicle - 1]; // capacities start with 0
                     lastRequest = vehicle;
-                } else {
+                }
+                else
+                {
                     var requestIndex = solution.GetRealIndex(solution.Route[i] - 1);
                     currCapacity -= problem.Requests[requestIndex].Amount;
 
                     // check constraints
-                    if(currCapacity < 0) {
+                    if (currCapacity < 0)
+                    {
                         return -1;
                     }
 

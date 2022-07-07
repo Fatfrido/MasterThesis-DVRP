@@ -12,7 +12,8 @@ namespace DVRP.Optimizer.ACS
         private double evaporation;
         private double pheromoneConservation;
 
-        public PheromoneMatrix(Problem problem, double initialPheromoneValue, double evaporation, double pheromoneConservation) {
+        public PheromoneMatrix(Problem problem, double initialPheromoneValue, double evaporation, double pheromoneConservation)
+        {
             this.initialPheromoneValue = initialPheromoneValue;
             this.evaporation = evaporation;
             this.pheromoneConservation = pheromoneConservation;
@@ -21,8 +22,10 @@ namespace DVRP.Optimizer.ACS
             var length = problem.VehicleCount + problem.Requests.Length + 1; // depot
             pheromoneMatrix = new double[length, length];
 
-            for (int i = 0; i < length; i++) {
-                for (int j = 0; j < length; j++) {
+            for (int i = 0; i < length; i++)
+            {
+                for (int j = 0; j < length; j++)
+                {
                     pheromoneMatrix[i, j] = initialPheromoneValue;
                 }
             }
@@ -32,14 +35,17 @@ namespace DVRP.Optimizer.ACS
         /// Extends the original pheromone matrix if necessary
         /// </summary>
         /// <param name="problem"></param>
-        public void Update(Problem problem) {
+        public void Update(Problem problem)
+        {
             var currentLength = pheromoneMatrix.GetLength(0);
 
             // Check if there is a new request (unknown id)
             var maxId = 0; // The highest id of all current requests
 
-            for (int i = 0; i < problem.Requests.Length; i++) {
-                if (problem.Requests[i].Id > maxId) {
+            for (int i = 0; i < problem.Requests.Length; i++)
+            {
+                if (problem.Requests[i].Id > maxId)
+                {
                     maxId = problem.Requests[i].Id;
                 }
             }
@@ -48,7 +54,8 @@ namespace DVRP.Optimizer.ACS
             var maxIdx = maxId + problem.VehicleCount;
 
             // The matrix is big enough for the highest id => no unhandled request
-            if (currentLength > maxIdx) {
+            if (currentLength > maxIdx)
+            {
                 return;
             }
 
@@ -56,11 +63,16 @@ namespace DVRP.Optimizer.ACS
             var newLength = currentLength + (maxIdx - (currentLength - 1));
             var matrix = new double[newLength, newLength];
 
-            for (int i = 0; i < newLength; i++) {
-                for (int j = 0; j < newLength; j++) {
-                    if (i < currentLength && j < currentLength) { // copy
+            for (int i = 0; i < newLength; i++)
+            {
+                for (int j = 0; j < newLength; j++)
+                {
+                    if (i < currentLength && j < currentLength)
+                    { // copy
                         matrix[i, j] = pheromoneMatrix[i, j];
-                    } else {
+                    }
+                    else
+                    {
                         matrix[i, j] = initialPheromoneValue;
                     }
                 }
@@ -74,8 +86,10 @@ namespace DVRP.Optimizer.ACS
         /// </summary>
         /// <param name="solution"></param>
         /// <param name="problem"></param>
-        public void GlobalUpdate(Solution solution, Problem problem) {
-            for(int i = 0; i < solution.Route.Length - 1; i++) {
+        public void GlobalUpdate(Solution solution, Problem problem)
+        {
+            for (int i = 0; i < solution.Route.Length - 1; i++)
+            {
                 var from = solution.Route[i] - 1; // exclude depot
                 var to = solution.Route[i + 1] - 1;
 
@@ -89,7 +103,8 @@ namespace DVRP.Optimizer.ACS
             }
         }
 
-        public void LocalUpdate(int from, int to, Problem problem) {
+        public void LocalUpdate(int from, int to, Problem problem)
+        {
             var fromPheromone = ToPheromoneIndex(from, problem);
             var toPheromone = ToPheromoneIndex(to, problem);
 
@@ -103,10 +118,14 @@ namespace DVRP.Optimizer.ACS
         /// <param name="index"></param>
         /// <param name="problem"></param>
         /// <returns></returns>
-        private int ToPheromoneIndex(int index, Problem problem) {
-            if (index <= problem.VehicleCount) {
+        private int ToPheromoneIndex(int index, Problem problem)
+        {
+            if (index <= problem.VehicleCount)
+            {
                 return index;
-            } else {
+            }
+            else
+            {
                 // Get the id of the request at index and add vehicle count and depot to get the correct index on the pheromone matrix
                 var res = problem.Mapping[index - problem.VehicleCount - 1] + problem.VehicleCount;
                 return res;
@@ -116,17 +135,21 @@ namespace DVRP.Optimizer.ACS
         /// <summary>
         /// Applies the pheromone conservation strategy
         /// </summary>
-        public void Conserve() {
+        public void Conserve()
+        {
             var length = pheromoneMatrix.GetLength(0);
-            for (int i = 0; i < length; i++) {
-                for(int j = 0; j < length; j++) {
+            for (int i = 0; i < length; i++)
+            {
+                for (int j = 0; j < length; j++)
+                {
                     pheromoneMatrix[i, j] = (1 - pheromoneConservation) * pheromoneMatrix[i, j]
                         + pheromoneConservation * initialPheromoneValue;
                 }
             }
         }
 
-        public double this[int x, int y] {
+        public double this[int x, int y]
+        {
             get => pheromoneMatrix[x, y];
             set => pheromoneMatrix[x, y] = value;
         }

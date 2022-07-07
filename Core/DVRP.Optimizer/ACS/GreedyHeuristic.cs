@@ -8,7 +8,8 @@ namespace DVRP.Optimizer.ACS
 {
     public class GreedyHeuristic : IPeriodicOptimizer
     {
-        public Domain.Solution Solve(Problem problem) {
+        public Domain.Solution Solve(Problem problem)
+        {
             var solution = new Domain.Solution(problem.VehicleCount);
 
             // Key is the index, value the request
@@ -16,23 +17,28 @@ namespace DVRP.Optimizer.ACS
                 .ToDictionary(x => x + 1, x => problem.Requests[x]);
 
             // Create a tour for every vehicle
-            for(int i = 0; i < problem.VehicleCount; i++) {
+            for (int i = 0; i < problem.VehicleCount; i++)
+            {
                 var route = new List<int>();
                 var capacity = problem.VehicleCapacity[i];
                 var lastRequest = problem.Start[i];
                 var stop = false;
 
                 // Assign as many requests to the vehicle as possible
-                while(capacity > 0 && requests.Count > 0 && !stop) {
+                while (capacity > 0 && requests.Count > 0 && !stop)
+                {
                     // Add request with minimal cost
                     var best = -1;
                     long bestCost = -1;
 
-                    foreach(var r in requests) {
+                    foreach (var r in requests)
+                    {
                         var cost = problem.CostMatrix[lastRequest, r.Key];
 
-                        if(capacity - r.Value.Amount >= 0) {
-                            if(bestCost < 0 || cost < bestCost) {
+                        if (capacity - r.Value.Amount >= 0)
+                        {
+                            if (bestCost < 0 || cost < bestCost)
+                            {
                                 bestCost = cost;
                                 best = r.Key;
                             }
@@ -40,12 +46,15 @@ namespace DVRP.Optimizer.ACS
                     }
 
                     // Only add valid options to route
-                    if(best > 0) {
+                    if (best > 0)
+                    {
                         route.Add(best);
                         capacity -= requests[best].Amount;
                         lastRequest = best;
                         requests.Remove(best);
-                    } else { // Stop adding requests to this vehicle
+                    }
+                    else
+                    { // Stop adding requests to this vehicle
                         stop = true;
                     }
                 }

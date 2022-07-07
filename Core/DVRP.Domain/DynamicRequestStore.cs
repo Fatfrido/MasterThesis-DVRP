@@ -16,8 +16,10 @@ namespace DVRP.Domain
         /// Returns all requests for a certain timestamp
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<Tuple<int, IEnumerable<Request>>> GetRequests() {
-            foreach(var entry in data) {
+        public IEnumerable<Tuple<int, IEnumerable<Request>>> GetRequests()
+        {
+            foreach (var entry in data)
+            {
                 yield return new Tuple<int, IEnumerable<Request>>(entry.Key, entry.Value);
             }
         }
@@ -27,8 +29,10 @@ namespace DVRP.Domain
         /// </summary>
         /// <param name="time"></param>
         /// <param name="request"></param>
-        public void Add(int time, Request request) {
-            if(!data.ContainsKey(time)) {
+        public void Add(int time, Request request)
+        {
+            if (!data.ContainsKey(time))
+            {
                 data.Add(time, new List<Request>());
             }
 
@@ -39,11 +43,14 @@ namespace DVRP.Domain
         /// Applies ids to the requests
         /// </summary>
         /// <param name="startId">The id of the first dynamic request</param>
-        public void UpdateIds(int startId) {
+        public void UpdateIds(int startId)
+        {
             var id = startId;
 
-            foreach(var entry in data) {
-                foreach(var request in entry.Value) {
+            foreach (var entry in data)
+            {
+                foreach (var request in entry.Value)
+                {
                     request.Id = id;
                     id++;
                 }

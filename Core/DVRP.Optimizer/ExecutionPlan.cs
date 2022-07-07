@@ -10,7 +10,8 @@ namespace DVRP.Optimizer
         public string Optimizer { get; set; }
         public int Iterations { get; set; }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             return $"{{ Instance: {ProblemInstance}, Optimizer: {Optimizer}, Iterations: {Iterations} }}";
         }
     }

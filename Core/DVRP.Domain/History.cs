@@ -15,10 +15,12 @@ namespace DVRP.Domain
 
         public int Count { get; private set; }
 
-        public History(int vehicleCount) {
+        public History(int vehicleCount)
+        {
             data = new List<Request>[vehicleCount];
 
-            for(int i = 0; i < data.Length; i++) {
+            for (int i = 0; i < data.Length; i++)
+            {
                 data[i] = new List<Request>();
             }
 
@@ -26,7 +28,8 @@ namespace DVRP.Domain
             this.vehicleCount = vehicleCount;
         }
 
-        public void Add(int vehicle, Request request) {
+        public void Add(int vehicle, Request request)
+        {
             data[vehicle].Add(request);
             served.Add(request.Id, vehicle);
             Count++;
@@ -37,7 +40,8 @@ namespace DVRP.Domain
         /// </summary>
         /// <param name="requestId"></param>
         /// <returns></returns>
-        public bool Contains(int requestId) {
+        public bool Contains(int requestId)
+        {
             return served.ContainsKey(requestId);
         }
 
@@ -46,22 +50,26 @@ namespace DVRP.Domain
         /// </summary>
         /// <param name="requestId"></param>
         /// <returns></returns>
-        public Request GetRequest(int requestId) {
+        public Request GetRequest(int requestId)
+        {
             var vehicle = served[requestId];
             return data[vehicle].Where(x => x.Id == requestId).First();
         }
 
-        public Solution ToSolution() {
+        public Solution ToSolution()
+        {
             var solution = new Solution(vehicleCount);
 
-            for (int i = 0; i < vehicleCount; i++) {
+            for (int i = 0; i < vehicleCount; i++)
+            {
                 solution.AddRoute(i, data[i].Select(x => x.Id).ToArray());
             }
 
             return solution;
         }
 
-        public List<Request> this[int key] {
+        public List<Request> this[int key]
+        {
             get => data[key];
         }
     }

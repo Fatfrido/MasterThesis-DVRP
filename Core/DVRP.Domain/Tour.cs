@@ -14,7 +14,8 @@ namespace DVRP.Domain
 
         public Tour() { }
 
-        public Tour(List<int> data) {
+        public Tour(List<int> data)
+        {
             Data = data;
         }
 
@@ -23,14 +24,16 @@ namespace DVRP.Domain
         /// </summary>
         /// <param name="problem"></param>
         /// <returns></returns>
-        public double GetCost(Problem problem) {
+        public double GetCost(Problem problem)
+        {
             var sum = 0.0;
             var prevRequest = 0;
 
             // Create reverse mapping to map requestId to its index in the problem
             var reverseMapping = problem.CreateReverseMapping();
 
-            foreach(var request in Data) {
+            foreach (var request in Data)
+            {
                 sum += problem.GetCost(prevRequest, request);
                 prevRequest = request;
             }
@@ -41,11 +44,13 @@ namespace DVRP.Domain
             return sum;
         }
 
-        public void ApplyMapping(int[] mapping) {
+        public void ApplyMapping(int[] mapping)
+        {
             Data = Data.Select(x => mapping[x]).ToList();
         }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             var sb = new StringBuilder();
             sb.AppendJoin('-', Data);
             return sb.ToString();

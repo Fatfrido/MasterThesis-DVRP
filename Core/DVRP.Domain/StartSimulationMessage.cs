@@ -15,7 +15,8 @@ namespace DVRP.Domain
         public bool AllowFastSimulation { get; set; }
 
         public StartSimulationMessage() { }
-        public StartSimulationMessage(bool allowFastSimulation, ProblemInstance problemInstance) {
+        public StartSimulationMessage(bool allowFastSimulation, ProblemInstance problemInstance)
+        {
             ProblemInstance = problemInstance;
             AllowFastSimulation = allowFastSimulation;
         }

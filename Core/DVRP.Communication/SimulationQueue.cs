@@ -16,7 +16,8 @@ namespace DVRP.Communication
         public event EventHandler<StartSimulationMessage> StartSimulationReceived = delegate { };
         public event EventHandler<Solution> SolutionReceived = delegate { };
 
-        public SimulationQueue(string pubConnection, string subConnection) {
+        public SimulationQueue(string pubConnection, string subConnection)
+        {
             pubSocket = new PublisherSocket(pubConnection);
 
             subSocket = new SubscriberSocket(subConnection);
@@ -26,12 +27,14 @@ namespace DVRP.Communication
             HandleEventIn();
         }
 
-        public void Publish(Problem problem) {
+        public void Publish(Problem problem)
+        {
             Console.WriteLine(">>>>>>>>> problem");
             pubSocket.SendMoreFrame(Channel.Problem.ToString()).SendFrame(problem.Serialize());
         }
 
-        public void Publish(SimulationResult result) {
+        public void Publish(SimulationResult result)
+        {
             Console.WriteLine(">>>>>>>>> result");
             pubSocket.SendMoreFrame(Channel.SimulationResult.ToString()).SendFrame(result.Serialize());
         }
@@ -39,15 +42,19 @@ namespace DVRP.Communication
         /// <summary>
         /// Handles incoming events on the queue
         /// </summary>
-        private void HandleEventIn() {
-            var task = new Task(() => {
-                while(true) {
+        private void HandleEventIn()
+        {
+            var task = new Task(() =>
+            {
+                while (true)
+                {
                     var topicStr = subSocket.ReceiveFrameString();
                     var topic = Enum.Parse(typeof(Channel), topicStr);
                     var message = subSocket.ReceiveFrameBytes();
                     Console.WriteLine($"received message: {topic}");
 
-                    switch (topic) {
+                    switch (topic)
+                    {
                         case Channel.Solution:
                             Console.WriteLine("<<<<<<<<<< solution");
                             SolutionReceived(this, message.Deserialize<Solution>());
@@ -63,7 +70,8 @@ namespace DVRP.Communication
             task.Start();
         }
 
-        ~SimulationQueue() {
+        ~SimulationQueue()
+        {
             pubSocket.Dispose();
             subSocket.Dispose();
         }

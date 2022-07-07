@@ -14,10 +14,12 @@ namespace DVRP.Optimizer.GA
         /// <typeparam name="T"></typeparam>
         /// <param name="array"></param>
         /// <returns></returns>
-        public static T[] Shuffle<T>(this T[] array) {
+        public static T[] Shuffle<T>(this T[] array)
+        {
             var n = array.Length;
 
-            for(int i = 0; i < n - 2; i++) {
+            for (int i = 0; i < n - 2; i++)
+            {
                 var r = random.Next(i, n - 1);
                 var temp = array[r];
                 array[r] = array[i];
@@ -33,7 +35,8 @@ namespace DVRP.Optimizer.GA
         /// <typeparam name="T"></typeparam>
         /// <param name="array"></param>
         /// <returns></returns>
-        public static T RandomElement<T>(this T[] array) {
+        public static T RandomElement<T>(this T[] array)
+        {
             return array[random.Next(0, array.Length - 1)];
         }
     }

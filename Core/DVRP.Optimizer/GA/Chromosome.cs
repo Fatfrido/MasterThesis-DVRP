@@ -18,7 +18,8 @@ namespace DVRP.Optimizer.GA
         /// Initializes the chromosome with a random permutation of integers starting with 1
         /// </summary>
         /// <param name="n">Length of the permutation</param>
-        public Chromosome(int n) {
+        public Chromosome(int n)
+        {
             Data = Enumerable.Range(1, n).ToArray().Shuffle();
         }
 
@@ -26,7 +27,8 @@ namespace DVRP.Optimizer.GA
         /// Initializes the chromosome with given data
         /// </summary>
         /// <param name="data">Data of the chromosome</param>
-        public Chromosome(int[] data) {
+        public Chromosome(int[] data)
+        {
             Data = data;
         }
 
@@ -34,13 +36,16 @@ namespace DVRP.Optimizer.GA
         /// Removes given values from the chromosome
         /// </summary>
         /// <param name="values"></param>
-        public void Remove(int[] values) {
+        public void Remove(int[] values)
+        {
             var newData = new int[Data.Length - values.Length];
             var newDataIndex = 0;
 
             // Copy all values except those in the values array
-            for(int i = 0; i < Data.Length; i++) {
-                if(!values.Contains(Data[i])) {
+            for (int i = 0; i < Data.Length; i++)
+            {
+                if (!values.Contains(Data[i]))
+                {
                     newData[newDataIndex] = Data[i];
                     newDataIndex++;
                 }
@@ -55,15 +60,22 @@ namespace DVRP.Optimizer.GA
         /// <param name="index"></param>
         /// <param name="value"></param>
         /// <returns>A new chromosome with the inserted value</returns>
-        public Chromosome Insert(int index, int value) {
+        public Chromosome Insert(int index, int value)
+        {
             var newData = new int[Data.Length + 1];
 
-            for(int i = 0; i < newData.Length; i++) {
-                if(i < index) {
+            for (int i = 0; i < newData.Length; i++)
+            {
+                if (i < index)
+                {
                     newData[i] = Data[i];
-                } else if(i == index) {
+                }
+                else if (i == index)
+                {
                     newData[i] = value;
-                } else {
+                }
+                else
+                {
                     newData[i] = Data[i - 1];
                 }
             }
@@ -74,7 +86,8 @@ namespace DVRP.Optimizer.GA
         /// <summary>
         /// Inverts a random sequence of the chromosome
         /// </summary>
-        public void ApplyInversionMutation() {
+        public void ApplyInversionMutation()
+        {
             // Define two cut points
             var point1 = random.Next(0, Data.Length - 1);
             var point2 = random.Next(0, Data.Length - 1);
@@ -82,10 +95,13 @@ namespace DVRP.Optimizer.GA
             var from = 0;
             var to = 1;
 
-            if(point1 < point2) {
+            if (point1 < point2)
+            {
                 from = point1;
                 to += point2;
-            } else {
+            }
+            else
+            {
                 from = point2;
                 to += point1;
             }
@@ -94,7 +110,8 @@ namespace DVRP.Optimizer.GA
             Array.Reverse(Data, from, to - from);
         }
 
-        public Chromosome PartiallyMappedCrossover(Chromosome other) {
+        public Chromosome PartiallyMappedCrossover(Chromosome other)
+        {
             var childData = other.Data.ToArray(); // Copy genes from parent 2
 
             var done = new Dictionary<int, int>(Length); // key: inserted value, value: index the value was inserted at
@@ -106,28 +123,35 @@ namespace DVRP.Optimizer.GA
             var from = 0;
             var to = 1;
 
-            if (point1 < point2) {
+            if (point1 < point2)
+            {
                 from = point1;
                 to += point2;
-            } else {
+            }
+            else
+            {
                 from = point2;
                 to += point1;
             }
 
             // Copy selection directly to child
-            for(int i = from; i < to; i++) {
+            for (int i = from; i < to; i++)
+            {
                 childData[i] = Data[i];
                 done[Data[i]] = i;
             }
 
             // Select each value in second parent in the range and check if it is already in the child
-            for(int i = from; i < to; i++) {
-                if (!done.TryGetValue(other.Data[i], out var b)) { // Not part of the child => add
+            for (int i = from; i < to; i++)
+            {
+                if (!done.TryGetValue(other.Data[i], out var b))
+                { // Not part of the child => add
                     var v = Data[i];
                     var index = i;
 
                     // Find index to insert value from second parent
-                    while(from <= index && index < to) {
+                    while (from <= index && index < to)
+                    {
                         v = Data[index];
                         index = Array.IndexOf(other.Data, v);
                     }
@@ -141,15 +165,18 @@ namespace DVRP.Optimizer.GA
             return new Chromosome(childData);
         }
 
-        public IEnumerator<int> GetEnumerator() {
+        public IEnumerator<int> GetEnumerator()
+        {
             return Data.Cast<int>().GetEnumerator();
         }
 
-        IEnumerator IEnumerable.GetEnumerator() {
+        IEnumerator IEnumerable.GetEnumerator()
+        {
             return Data.GetEnumerator();
         }
 
-        public int this[int key] {
+        public int this[int key]
+        {
             get => Data[key];
             set => Data[key] = value;
         }

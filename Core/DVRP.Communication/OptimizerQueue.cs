@@ -18,7 +18,8 @@ namespace DVRP.Communication
         public event EventHandler<Problem> ProblemReceived = delegate { };
         public event EventHandler<SimulationResult> ResultsReceived = delegate { };
 
-        public OptimizerQueue(string pubConnection, string subConnection) {
+        public OptimizerQueue(string pubConnection, string subConnection)
+        {
             pubSocket = new PublisherSocket(pubConnection);
 
             subSocket = new SubscriberSocket(subConnection);
@@ -28,24 +29,30 @@ namespace DVRP.Communication
             HandleEventIn();
         }
 
-        public void Publish(Solution solution) {
+        public void Publish(Solution solution)
+        {
             //Console.WriteLine(">>>>>>>>>>>> solution");
             pubSocket.SendMoreFrame(Channel.Solution.ToString()).SendFrame(solution.Serialize());
         }
 
-        public void PublishStart(StartSimulationMessage message) {
+        public void PublishStart(StartSimulationMessage message)
+        {
             //Console.WriteLine(">>>>>>>>>>>> start");
             pubSocket.SendMoreFrame(Channel.Start.ToString()).SendFrame(message.Serialize());
         }
 
-        private void HandleEventIn() {
-            var task = new Task(() => {
-                while(true) {
+        private void HandleEventIn()
+        {
+            var task = new Task(() =>
+            {
+                while (true)
+                {
                     var topicStr = subSocket.ReceiveFrameString();
                     var topic = Enum.Parse(typeof(Channel), topicStr);
                     var message = subSocket.ReceiveFrameBytes();
 
-                    switch (topic) {
+                    switch (topic)
+                    {
                         case Channel.Problem:
                             //Console.WriteLine("<<<<<<<<<<<<< problem");
                             ProblemReceived(this, message.Deserialize<Problem>());
@@ -61,7 +68,8 @@ namespace DVRP.Communication
             task.Start();
         }
 
-        ~OptimizerQueue() {
+        ~OptimizerQueue()
+        {
             pubSocket.Dispose();
             subSocket.Dispose();
         }

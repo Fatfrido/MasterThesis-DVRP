@@ -19,7 +19,8 @@ namespace DVRP.Communication
         public string Instance { get; set; }
 
         public SimulationResult() { }
-        public SimulationResult(Solution solution, double cost, string instance) {
+        public SimulationResult(Solution solution, double cost, string instance)
+        {
             Solution = solution;
             Cost = cost;
             Instance = instance;

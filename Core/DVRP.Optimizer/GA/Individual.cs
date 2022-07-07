@@ -14,12 +14,14 @@ namespace DVRP.Optimizer.GA
         public Chromosome VehicleChromosome { get; private set; }
         public double Fitness { get; private set; }
 
-        public Individual(int[] requests, int vehicleCount) {
+        public Individual(int[] requests, int vehicleCount)
+        {
             RouteChromosome = new Chromosome(requests.ToArray().Shuffle());
             VehicleChromosome = new Chromosome(vehicleCount);
         }
 
-        public Individual(Chromosome routeChromosome, Chromosome vehicleChromosome) {
+        public Individual(Chromosome routeChromosome, Chromosome vehicleChromosome)
+        {
             RouteChromosome = routeChromosome;
             VehicleChromosome = vehicleChromosome;
         }
@@ -28,7 +30,8 @@ namespace DVRP.Optimizer.GA
         /// Removes a request from the chromosome
         /// </summary>
         /// <param name="request"></param>
-        public void RemoveRequests(int[] requests) {
+        public void RemoveRequests(int[] requests)
+        {
             RouteChromosome.Remove(requests);
         }
 
@@ -37,17 +40,20 @@ namespace DVRP.Optimizer.GA
         /// </summary>
         /// <param name="request"></param>
         /// <param name="problem"></param>
-        public void InsertRequest(int request, Problem problem) {
+        public void InsertRequest(int request, Problem problem)
+        {
             // Find the best position to insert the new request
             var bestFitness = -1.0;
             Chromosome bestChromosome = null;
 
-            for(int i = 0; i < RouteChromosome.Length + 1; i++) {
+            for (int i = 0; i < RouteChromosome.Length + 1; i++)
+            {
                 var newRouteChromosome = RouteChromosome.Insert(i, request);
                 var individual = new Individual(newRouteChromosome, VehicleChromosome);
                 var fitness = individual.CalculateFitness(problem);
 
-                if(fitness > bestFitness || bestChromosome == null) {
+                if (fitness > bestFitness || bestChromosome == null)
+                {
                     bestFitness = fitness;
                     bestChromosome = newRouteChromosome;
                 }
@@ -57,11 +63,8 @@ namespace DVRP.Optimizer.GA
             RouteChromosome = bestChromosome;
         }
 
-        public void InsertRequestRandom(int request, Problem problem) {
-            // Find the best position to insert the new request
-            var bestFitness = -1.0;
-            Chromosome bestChromosome = null;
-
+        public void InsertRequestRandom(int request, Problem problem)
+        {
             var index = random.Next(0, RouteChromosome.Length);
             RouteChromosome = RouteChromosome.Insert(index, request);
         }
@@ -71,7 +74,8 @@ namespace DVRP.Optimizer.GA
         /// </summary>
         /// <param name="parent"></param>
         /// <returns></returns>
-        public Individual PartiallyMappedCrossover(Individual parent) {
+        public Individual PartiallyMappedCrossover(Individual parent)
+        {
             var childRouteChromosome = RouteChromosome.PartiallyMappedCrossover(parent.RouteChromosome);
             var childVehicleChromosome = VehicleChromosome.PartiallyMappedCrossover(parent.VehicleChromosome);
 
@@ -82,7 +86,8 @@ namespace DVRP.Optimizer.GA
         /// Applies mutation to <see cref="RouteChromosome"/> and <see cref="VehicleChromosome"/>
         /// </summary>
         /// <param name="probability">Probability for one of the chromosomes to mutate. 0 <= probability <= 1</param>
-        public void Mutate(double probability) {
+        public void Mutate(double probability)
+        {
             Mutate(probability, RouteChromosome);
             Mutate(probability, VehicleChromosome);
         }
@@ -92,10 +97,12 @@ namespace DVRP.Optimizer.GA
         /// </summary>
         /// <param name="probability"></param>
         /// <param name="chromosome"></param>
-        public void Mutate(double probability, Chromosome chromosome) {
+        public void Mutate(double probability, Chromosome chromosome)
+        {
             var r = random.NextDouble();
 
-            if (r < probability) {
+            if (r < probability)
+            {
                 chromosome.ApplyInversionMutation();
             }
         }
@@ -105,14 +112,16 @@ namespace DVRP.Optimizer.GA
         /// </summary>
         /// <param name="problem"></param>
         /// <returns></returns>
-        public double CalculateFitness(Problem problem) {
+        public double CalculateFitness(Problem problem)
+        {
             var i = 0;
             var cost = 0.0;
 
             // Create inverse request mapping (id => index)
             var idToIndexMapping = new Dictionary<int, int>();
             idToIndexMapping.Add(0, 0); // depot
-            for (int j = 0; j < problem.Requests.Length; j++) {
+            for (int j = 0; j < problem.Requests.Length; j++)
+            {
                 idToIndexMapping.Add(problem.Requests[j].Id, j);
             }
 
@@ -120,17 +129,20 @@ namespace DVRP.Optimizer.GA
             var capacity = problem.VehicleCapacity[vehicle - 1];
             var lastRequest = problem.Mapping[problem.Start[vehicle - 1]];
 
-            foreach(var request in RouteChromosome) {
+            foreach (var request in RouteChromosome)
+            {
                 // Check capacity constraint
                 var demand = problem.Requests[idToIndexMapping[request]].Amount;
 
-                while (capacity - demand < 0) { // Not enough capacity on vehicle, try the next one
+                while (capacity - demand < 0)
+                { // Not enough capacity on vehicle, try the next one
                     // Drive vehicle back to depot
                     cost += problem.GetCost(lastRequest, 0);
 
                     i++;
 
-                    if(i >= VehicleChromosome.Length) {
+                    if (i >= VehicleChromosome.Length)
+                    {
                         throw new IndexOutOfRangeException("Not enough vehicles to solve problem.");
                     }
 
@@ -158,17 +170,20 @@ namespace DVRP.Optimizer.GA
         /// </summary>
         /// <param name="problem"></param>
         /// <returns></returns>
-        public Solution ToSolution(Problem problem) {
+        public Solution ToSolution(Problem problem)
+        {
             var solution = new Solution(VehicleChromosome.Length);
             var vehicleIndex = 0;
             var vehicle = VehicleChromosome[vehicleIndex] - 1;
             var capacity = problem.VehicleCapacity[vehicle];
             var route = new List<int>();
 
-            foreach(var request in RouteChromosome) {
+            foreach (var request in RouteChromosome)
+            {
                 var demand = problem.Requests.Where(x => x.Id == request).First().Amount;
 
-                while(capacity - demand < 0) {
+                while (capacity - demand < 0)
+                {
                     // Save current route
                     solution.AddRoute(vehicle, route.ToArray());
                     route.Clear();

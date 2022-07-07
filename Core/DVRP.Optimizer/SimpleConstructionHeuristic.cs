@@ -8,15 +8,18 @@ namespace DVRP.Optimizer
 {
     public class SimpleConstructionHeuristic : IPeriodicOptimizer
     {
-        public Solution Solve(Problem problem) {
+        public Solution Solve(Problem problem)
+        {
             var solution = new Solution(problem.VehicleCount);
             int currentVehicle = 0;
             int currentVehicleCapacity = problem.VehicleCapacity[currentVehicle];
             Console.WriteLine(new StringBuilder().AppendJoin(',', problem.VehicleCapacity));
             var route = new List<int>();
 
-            foreach(var request in problem.Requests) {
-                if(currentVehicleCapacity - request.Amount < 0) {
+            foreach (var request in problem.Requests)
+            {
+                if (currentVehicleCapacity - request.Amount < 0)
+                {
                     // commit previous route
                     solution.AddRoute(currentVehicle, route.ToArray());
 
@@ -33,10 +36,12 @@ namespace DVRP.Optimizer
             solution.AddRoute(currentVehicle, route.ToArray());
 
             // create empty routes for unused vehicles
-            if(currentVehicle < problem.VehicleCount - 1) {
+            if (currentVehicle < problem.VehicleCount - 1)
+            {
                 route.Clear();
 
-                for(int i = currentVehicle + 1; i < problem.VehicleCount; i++) {
+                for (int i = currentVehicle + 1; i < problem.VehicleCount; i++)
+                {
                     solution.AddRoute(i, route.ToArray());
                 }
             }

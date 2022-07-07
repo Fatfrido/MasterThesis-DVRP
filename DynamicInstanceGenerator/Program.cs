@@ -11,7 +11,8 @@ namespace DynamicInstanceGenerator
     {
         private static Random random = new Random();
 
-        static void Main(string[] args) {
+        static void Main(string[] args)
+        {
             var json = File.ReadAllText(args[0]);
             var problem = JsonConvert.DeserializeObject<ProblemInstance>(json);
 
@@ -32,18 +33,21 @@ namespace DynamicInstanceGenerator
         /// <param name="from">must be greater than 0</param>
         /// <param name="to"></param>
         /// <param name="name"></param>
-        private static void ModifyAndExport(ProblemInstance problem, double dod, int from, int to, string name) {
-            var dynamicRequestCount = (int) Math.Ceiling(problem.Available.Length * dod);
+        private static void ModifyAndExport(ProblemInstance problem, double dod, int from, int to, string name)
+        {
+            var dynamicRequestCount = (int)Math.Ceiling(problem.Available.Length * dod);
 
             var clone = problem.Clone();
 
             clone.Name = name;
 
             // https://stackoverflow.com/questions/35065764/select-n-records-at-random-from-a-set-of-n
-            for (int i = 0; i < clone.Available.Length; i++) {
-                var p = (double) dynamicRequestCount / (clone.Available.Length - i);
+            for (int i = 0; i < clone.Available.Length; i++)
+            {
+                var p = (double)dynamicRequestCount / (clone.Available.Length - i);
 
-                if(random.NextDouble() <= p) {
+                if (random.NextDouble() <= p)
+                {
                     // Select a random availability value between 'from' and 'to'
                     clone.Available[i] = random.Next(from, to);
                     dynamicRequestCount--;
@@ -53,7 +57,8 @@ namespace DynamicInstanceGenerator
             Export(clone, name);
         }
 
-        private static void Export(ProblemInstance problem, string name) {
+        private static void Export(ProblemInstance problem, string name)
+        {
             File.WriteAllText($"{name}.json", JsonConvert.SerializeObject(problem));
         }
     }
